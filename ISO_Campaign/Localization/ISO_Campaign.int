@@ -1,0 +1,18 @@
+[UISaveProperSort]
+m_RenameCampaign="RENAME CAMPAIGN"
+m_SaveToCampaign="Save game to Campaign"
+
+[UILoadProperSort]
+m_RenameCampaign="RENAME CAMPAIGN"
+m_LoadFromCampaign="Loading game from Campaign"
+
+[UISaveLoadItemWithNames]
+m_RenameCampaign="RENAME CAMPAIGN"
+
+[UISaveGameCampaignSelectItem]
+m_SelectCampaignLabel="SELECT CAMPAIGN"
+m_DeleteCampaignLabel="DELETE CAMPAIGN"
+m_sDeleteAllLabel="DELETE ALL"
+m_sDeleteConfirmText="DELETE"
+m_sDeleteAllSaveTitle="CONFIRM CAMPAIGN DELETION"
+m_sDeleteAllSaveText="Are you sure you want to delete ALL save files in this campaign?"
