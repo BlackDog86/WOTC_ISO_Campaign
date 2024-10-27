@@ -2,9 +2,6 @@ class UILoadProperSort extends UILoadGame config(Game);
 
 var localized string m_RenameCampaign;
 var localized string m_LoadFromCampaign;
-var localized string m_sDeleteAllSaveTitle;
-var localized string m_sDeleteAllSaveText;
-var localized string m_sDeleteConfirmText;
 var localized string m_sNameSave;
 
 var int CurrentlySelectedCampaignIndex;
@@ -85,7 +82,7 @@ simulated function BuildMenu()
 				if (ShownIndex.Find(Index) == INDEX_NONE && AvailableCampaignIndex.Find(Index) != INDEX_NONE)
 				{
 					ShownIndex.AddItem(Index);
-					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAcceptCamp, OnRenameCamp, OnDeleteCamp, SetSelectionCamp));
+					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAcceptCamp, OnRenameCamp, SetSelectionCamp));
 					m_arrListCampaign[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);			
 				}
 				
@@ -258,61 +255,6 @@ simulated public function OnAcceptCamp(optional UIButton control)
 	}
 }
 
-simulated public function OnDeleteCamp(optional UIButton control)
-{
-	local TDialogueBoxData kDialogData;
-
-	Movie.Pres.PlayUISound(eSUISound_MenuSelect);
-
-	// Warn before deleting save
-	kDialogData.eType     = eDialog_Warning;
-	kDialogData.strTitle  = m_sDeleteAllSaveTitle;
-	kDialogData.strText   = m_sDeleteAllSaveText;
-	kDialogData.strAccept = m_sDeleteConfirmText;
-	kDialogData.strCancel = class'UIDialogueBox'.default.m_strDefaultCancelLabel;
-
-	kDialogData.fnCallback  = DeleteAllSaveWarningCampaignCallback;
-	`log("deleting campaign",,'BDLOG');
-	Movie.Pres.UIRaiseDialog( kDialogData );
-}
-
-simulated function DeleteAllSaveWarningCampaignCallback(Name eAction)
-{
-	if (eAction == 'eUIAction_Accept')
-	{
-		DeleteAllSavesInCampaign();		
-	}
-}
-
-// Somehow, in this function we need to the items in m_arrSaveGames which have the matching campaign ID number to the current selection
-simulated function DeleteAllSavesInCampaign()
-{
-	local SaveGameHeader	CampaignHeader, IndividualGameHeader;
-	local int				SaveIdx;
-
-	//Fill the local var with the save games
-	`ONLINEEVENTMGR.GetSaveGames(m_arrSaveGames);
-
-	//Use the campaign header from the dummy save game in the class to get the info
-	CampaignHeader = SaveGame.SaveGames[0].SaveGameHeader;
-	//`log("Campaign number is " @ CampaignHeader.GameNum);
-
-	//Loop through all the games in the folder
-	SaveIdx = 0;	
-	while (SaveIdx < m_arrSaveGames.length)
-	{
-		//Get the header
-		IndividualGameHeader = m_arrSaveGames[SaveIdx].SaveGames[0].SaveGameHeader;
-		// Match the menu item campaign gamenumber with the individual game campaign number
-		If(IndividualGameHeader.GameNum == CampaignHeader.GameNum)
-		{
-		//Delete the game if it matches
-		`ONLINEEVENTMGR.DeleteSaveGame(GetSaveID(SaveIdx));
-		}
-		++SaveIdx;
-	}	
-}
-
 simulated function SetSelectionCamp(int currentSelection)
 {
 	local int i;
@@ -433,8 +375,7 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case (class'UIUtilities_Input'.const.FXS_KEY_DELETE):			
 			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1 && `GETMCMVAR(ENABLE_DELETE_CAMPAIGN_BUTTON))
 			{
-			`log("Delete button hit");
-			OnDeleteCamp();
+			//`log("Delete button hit");
 			}
 			Else
 			{

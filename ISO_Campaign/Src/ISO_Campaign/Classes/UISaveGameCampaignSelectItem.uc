@@ -17,6 +17,9 @@ var UIList					List;
 var localized string		m_SelectCampaignLabel;
 var localized string		m_DeleteCampaignLabel;
 var localized string		m_sDeleteAllLabel;
+var localized string		m_sDeleteAllSaveTitle;
+var localized string		m_sDeleteAllSaveText;
+var localized string		m_sDeleteConfirmText;
 
 var delegate<OnMouseInDelegate> OnMouseIn;
 
@@ -40,7 +43,7 @@ simulated function UIPanel InitPanel(optional name InitName, optional name InitL
 	return self;
 }
 
-simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, OnlineSaveGame save, bool bSaving, optional delegate<OnClickedDelegate> AcceptClickedDelegate, optional delegate<OnClickedDelegate> RenameClickedDelegate, optional delegate<OnClickedDelegate> DeleteClickedDelegate, optional delegate<OnMouseInDelegate> MouseInDelegate)
+simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, OnlineSaveGame save, bool bSaving, optional delegate<OnClickedDelegate> AcceptClickedDelegate, optional delegate<OnClickedDelegate> RenameClickedDelegate, optional delegate<OnMouseInDelegate> MouseInDelegate)
 {
 	local XComOnlineEventMgr OnlineEventMgr;
 
@@ -87,7 +90,7 @@ simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, 
 	
 	DeleteButton = Spawn(class'UIButton', ButtonBG);
 	DeleteButton.bIsNavigable = false;
-	DeleteButton.InitButton('Button2', default.m_DeleteCampaignLabel, DeleteClickedDelegate);	
+	DeleteButton.InitButton('Button2', default.m_DeleteCampaignLabel, OnDeleteCamp);	
 		
 		if (`ISCONTROLLERACTIVE) 
 		{
@@ -555,6 +558,61 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 	return super.OnUnrealCommand(cmd, arg);
 }
 
+simulated public function OnDeleteCamp(optional UIButton control)
+{
+	local TDialogueBoxData kDialogData;
+
+	Movie.Pres.PlayUISound(eSUISound_MenuSelect);
+
+	// Warn before deleting save
+	kDialogData.eType     = eDialog_Warning;
+	kDialogData.strTitle  = m_sDeleteAllSaveTitle;
+	kDialogData.strText   = m_sDeleteAllSaveText;
+	kDialogData.strAccept = m_sDeleteConfirmText;
+	kDialogData.strCancel = class'UIDialogueBox'.default.m_strDefaultCancelLabel;
+
+	kDialogData.fnCallback  = DeleteAllSaveWarningCampaignCallback;
+	`log("deleting campaign",,'BDLOG');
+	Movie.Pres.UIRaiseDialog( kDialogData );
+}
+
+simulated function DeleteAllSaveWarningCampaignCallback(Name eAction)
+{
+	if (eAction == 'eUIAction_Accept')
+	{
+		DeleteAllSavesInCampaign();		
+	}
+}
+
+// Somehow, in this function we need to the items in m_arrSaveGames which have the matching campaign ID number to the current selection
+simulated function DeleteAllSavesInCampaign()
+{
+	local SaveGameHeader	CampaignHeader, IndividualGameHeader;
+	local int				SaveIdx;
+
+	//Fill the local var with the save games
+	`ONLINEEVENTMGR.GetSaveGames(m_arrSaveGames);
+
+	//Use the campaign header from the dummy save game in the class to get the info
+	CampaignHeader = SaveGame.SaveGames[0].SaveGameHeader;
+	//`log("Campaign number is " @ CampaignHeader.GameNum);
+
+	//Loop through all the games in the folder
+	SaveIdx = 0;	
+	while (SaveIdx < m_arrSaveGames.length)
+	{
+		//Get the header
+		IndividualGameHeader = m_arrSaveGames[SaveIdx].SaveGames[0].SaveGameHeader;
+		// Match the menu item campaign gamenumber with the individual game campaign number
+		If(IndividualGameHeader.GameNum == CampaignHeader.GameNum)
+		{
+		//Delete the game if it matches
+		`ONLINEEVENTMGR.DeleteSaveGame(GetSaveID(SaveIdx));
+		}
+		++SaveIdx;
+	}	
+}
+
 simulated function OnReceiveFocus()
 {
 	if (`ISCONTROLLERACTIVE == false)
@@ -592,7 +650,6 @@ simulated function OnLoseFocus()
 		DeleteButton.OnLoseFocus();
 	}
 }
-
 
 defaultproperties
 {

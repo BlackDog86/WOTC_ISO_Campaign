@@ -89,7 +89,7 @@ simulated function BuildMenu()
 				{
 					ShownIndex.AddItem(Index);
 					
-					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], true, OnAcceptCamp, OnRenameCamp, OnDeleteCamp, SetSelectionCamp));
+					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], true, OnAcceptCamp, OnRenameCamp, SetSelectionCamp));
 					m_arrListCampaign[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
 				}
 			}
