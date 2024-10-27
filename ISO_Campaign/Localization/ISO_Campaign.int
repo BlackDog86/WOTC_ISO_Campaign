@@ -5,6 +5,10 @@ m_SaveToCampaign="Save game to Campaign"
 [UILoadProperSort]
 m_RenameCampaign="RENAME CAMPAIGN"
 m_LoadFromCampaign="Loading game from Campaign"
+m_sDeleteAllLabel="DELETE ALL"
+m_sDeleteConfirmText="DELETE"
+m_sDeleteAllSaveTitle="CONFIRM CAMPAIGN DELETION"
+m_sDeleteAllSaveText="Are you sure you want to delete ALL save files in this campaign?"
 
 [UISaveLoadItemWithNames]
 m_RenameCampaign="RENAME CAMPAIGN"
@@ -12,7 +16,23 @@ m_RenameCampaign="RENAME CAMPAIGN"
 [UISaveGameCampaignSelectItem]
 m_SelectCampaignLabel="SELECT CAMPAIGN"
 m_DeleteCampaignLabel="DELETE CAMPAIGN"
-m_sDeleteAllLabel="DELETE ALL"
-m_sDeleteConfirmText="DELETE"
-m_sDeleteAllSaveTitle="CONFIRM CAMPAIGN DELETION"
-m_sDeleteAllSaveText="Are you sure you want to delete ALL save files in this campaign?"
+
+[WOTC_ISO_Campaign_MCMScreen]
+ModName = "Rename & Reorganise Campaign"
+PageTitle = "Rename & Reorganise Campaign"
+GroupHeader = "General"
+
+SEPARATE_BY_CAMPAIGN_Label = "Separate save games by campaign"
+SEPARATE_BY_CAMPAIGN_Tip = "Disble this check-mark to display all saved games in a continuous list"
+
+ENABLE_DELETE_CAMPAIGN_BUTTON_Label = "Delete campaign button"
+ENABLE_DELETE_CAMPAIGN_BUTTON_Tip = "Delete button is enabled when this box is checked."
+
+TWENTY_FOUR_HOUR_CLOCK_Label = "24 hour clock"
+TWENTY_FOUR_HOUR_CLOCK_Tip = "24h Clock is enabled when this box is checked."
+
+SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Label = "Show mission location on Campaign Summary"
+SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Tip = "When checked, shows the mission location instead of op. name on line 3"
+
+SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Label = "Show mission location on main Save/Load Screens"
+SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Tip = "When checked, shows the mission location instead of op. name on line 3"

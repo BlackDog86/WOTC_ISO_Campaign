@@ -19,25 +19,64 @@ class UISaveLoadItemWithNames extends UISaveLoadGameListItem config(Game);
 	//11:41 PM										Descriptions[5] - In-Game Time & Area
 
 var localized string m_RenameCampaign;
-var config bool b24hClock;
+`include(ISO_Campaign\Src\ModConfigMenuAPI\MCM_API_CfgHelpers.uci)
 
 simulated function UISaveLoadGameListItem InitSaveLoadItem(int listIndex, OnlineSaveGame save, bool bSaving, optional delegate<OnClickedDelegate> AcceptClickedDelegate, optional delegate<OnClickedDelegate> DeleteClickedDelegate, optional delegate<OnClickedDelegate> RenameClickedDelegate, optional delegate<OnMouseInDelegate> MouseInDelegate)
 {
-	super.InitSaveLoadItem(listIndex, save, bSaving, AcceptClickedDelegate, DeleteClickedDelegate, RenameClickedDelegate, MouseInDelegate);
+	local XComOnlineEventMgr OnlineEventMgr;
 
-	if (`ONLINEEVENTMGR.SaveNameToID(save.Filename) > 0 && !class'UILoadProperSort'.default.SeparateSaveGamesByCampaign && !bIsSaving)
+	OnlineEventMgr = `ONLINEEVENTMGR;
+
+	ID = OnlineEventMgr.SaveNameToID(save.Filename);
+	InitPanel();
+	Index = listIndex;
+
+	SaveGame = save;
+	bIsSaving = bSaving;
+
+	SetY(135 * listIndex);
+	ButtonBG = Spawn(class'UIPanel', self);
+	ButtonBG.bIsNavigable = false;
+	ButtonBG.bCascadeFocus = false;
+	ButtonBG.InitPanel(ButtonBGLibID);
+
+	//Navigator.HorizontalNavigation = true;
+	
+	AcceptButton = Spawn(class'UIButton', ButtonBG);
+	AcceptButton.bIsNavigable = false;
+	AcceptButton.InitButton('Button0', GetAcceptLabel(ID == -1), ID == -1 ? RenameClickedDelegate : AcceptClickedDelegate); 
+	if (`ISCONTROLLERACTIVE)
 	{
-		AcceptButton.Show();
-		DeleteButton.Show();
-		RenameButton.Show();
-		RenameButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
-		RenameButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_Y_TRIANGLE);
+		AcceptButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
+		AcceptButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetAdvanceButtonIcon());
+		AcceptButton.SetVisible(bIsFocused);
 	}
-	else
+	AcceptButton.OnMouseEventDelegate = OnChildMouseEvent;
+
+	DeleteButton = Spawn(class'UIButton', ButtonBG);
+	DeleteButton.bIsNavigable = false;
+	DeleteButton.InitButton('Button1', GetDeleteLabel(), DeleteClickedDelegate);
+	if (`ISCONTROLLERACTIVE) 
 	{
-		AcceptButton.Show();
-		DeleteButton.Show();
+		DeleteButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
+		DeleteButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_X_SQUARE); // bsg-jrebar (4.3.17): Unifying across platforms to X for delete
+		DeleteButton.SetVisible(bIsFocused);
 	}
+	DeleteButton.OnMouseEventDelegate = OnChildMouseEvent;
+	
+	RenameButton = Spawn(class'UIButton', ButtonBG);
+	RenameButton.bIsNavigable = false;
+	RenameButton.InitButton('Button2', m_sRenameLabel, RenameClickedDelegate);
+	RenameButton.OnMouseEventDelegate = OnChildMouseEvent;
+	RenameButton.Hide();
+
+	if(bIsSaving && ID == -1)
+	{
+		DeleteButton.Hide();
+		RenameButton.Hide();
+	}
+
+	OnMouseIn = MouseInDelegate;
 
 	return self;
 }
@@ -46,14 +85,14 @@ simulated function OnInit()
 {
 	super.OnInit();
 
-	UpdateData(SaveGame);
+	UpdateDataWithNames(SaveGame);
 	if (`ISCONTROLLERACTIVE) 
 	{
 		//Initially when UpdateData gets called, it invokes the actionscript's UpdateData function
 		//that decides it's a good idea to unhighlight the button.
 		if( bIsFocused )
 		{
-			`log("Oninit issue logged");
+			//`log("Oninit issue logged");
 			OnReceiveFocus();
 			UIPanel(Owner).Navigator.SetSelected(self);
 		}
@@ -61,7 +100,7 @@ simulated function OnInit()
 		{
 		OnLoseFocus();
 		}
-		`log("not focussed");
+		//`log("not focussed");
 	}
 }
 
@@ -99,11 +138,12 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 	bIsDifferentLanguage = (Header.Language != GetLanguage());
 
 	//Split up all the descriptions in the file header (you can see these by opening a save file with a text editor)	
-	Descriptions = SplitString(Header.Description, "\n");	
+	Descriptions = SplitString(Header.Description, "\n");
 	//The date and time are concatenated together in a single header - split these into two seperate array elements
 	dateTimeArray = SplitString(FormatTime(Header.Time), " - ");
 	//Now split the save game date into 3 strings & store in seperate array (of months/days/years)
 	saveDateArray=SplitString(Descriptions[0],"/");
+
 	// Append zeros to the month & day if needed
 	if (len(saveDateArray[0]) == 1)
 		{
@@ -113,16 +153,16 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 		{
 		saveDateArray[1] = "0" $ saveDateArray[1];
 		}
-	if (len(DateTimeArray[1]) == 4)
+	if (len(DateTimeArray[1]) == 4 || len(DateTimeArray[1]) == 7)
 	//e.g. A 24h clock time is listed as 1:34 onstead of 01:34
 		{
 		DateTimeArray[1] = "0" $ DateTimeArray[1];
 		}
 	//Parse Ironman desc.
 	If(InStr(Descriptions[2],class'XComOnlineEventMgr'.default.m_strIronmanLabel) !=INDEX_NONE)
-	{
-	Descriptions[2] = class'XComOnlineEventMgr'.default.m_strIronmanLabel;
-	}
+		{
+		Descriptions[2] = class'XComOnlineEventMgr'.default.m_strIronmanLabel;
+		}
 	
 	//For old save files that used "-"
 	if( Descriptions.length < 2 )
@@ -130,14 +170,14 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 
 	// Handle weirdness
 	if(Descriptions.Length < 4)
-	{
+		{
 		strDate = Repl(Header.Time, "\n", " - ") @ Header.Description;
 	
 		//Handle "custom" description such as what the error reports use
 		MC.FunctionBool("SetErrorReport", true);
-	}
+		}
 	else
-	{
+		{
 		//We've made a normal save game
 		strTime = saveDateArray[2] $'-'$ saveDateArray[0] $'-'$ saveDateArray[1] $' - '$ dateTimeArray[1] $' - '; // This is actually the date & time concatenated together		
 		strDate = strTime $ (Descriptions.Length >= 3 ? Descriptions[2] : ""); // This goes on the first line of the save/load box (Date + time + user save description)
@@ -145,33 +185,89 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 		strCampaignName = class'SaveGameNamingManager'.static.GetSaveName(Header.GameNum);
 
 		//Put the custom campaign name or campaign number in brackets at the end of the first line
-		if(!class'UILoadProperSort'.default.SeparateSaveGamesByCampaign)
-		{
+		if(!`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
+			{
 			if (strCampaignName != "")
-			{
+				{
 				strDate @= "-" @ strCampaignName;
-			}
+				}
 			else
-			{
+				{
 				strDate @= "-" @ strName;
-			}	
-		}
+				}	
+			}
 	
-			if (Descriptions.Length == 7) // We saved in a mission
-			{
-			strName = Descriptions[3];	//Put the mission type on the second line
+		if (Descriptions.Length == 7) // We saved in a mission
+		{
+			
+			if(mid(Descriptions[6],1,1) == ":")
+				{
+				Descriptions[6] = "0" $ Descriptions[6]; //Ensure the time part is a consistent length irrespective of the 12h time in the header
+				}
+
+			//Process the 'in-game' time 
+			gameHour=Int(Left(Descriptions[6],2));			//Put the in-game time into integer variables
+			gameMinute=Int(Mid(Descriptions[6],3,2));		
+				
+			If(InStr(Left(Descriptions[6],8),"PM") !=INDEX_NONE )		
+				{							
+				gameHour=Int(Left(Descriptions[6],2));	//If "PM" is in the string & it's not 12pm, add 12
+						
+				if(gameHour < 12 && `GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+					{
+					gameHour += 12;
+					}
+				}			
+			
+			gameHourString="";
+			gameHourString$=gameHour;
+				
+			If (Len(gameHourString)==1)
+				{
+				gameHourString="0"$gameHourString;			//Append leading 0
+				}
+			gameMinuteString="";
+			gameMinuteString$=gameMinute;					//Append leading 0
+				
+			If (Len(gameMinuteString)==1)
+				{
+				gameMinuteString="0"$gameMinuteString;
+				}
+
+			if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+				{	
+				gameTime=gameHourString$":"$gameMinuteString;
+				}
+			else
+				{
+				gameTime=left(Descriptions[6],8);
+				}
+
+			strName = Descriptions[3];							//Put the mission type on the second line
+			
 			gameDateArray=SplitString(Descriptions[5],"/");		//Split in the in-game date up into 3 strings
-				if (len(gameDateArray[0]) == 1)					// Append zeroes to months & days if needed
+			
+			if (len(gameDateArray[0]) == 1)					// Append zeroes to months & days as needed
 				{
 				gameDateArray[0] = "0" $ gameDateArray[0];
 				}
-				if (len(gameDateArray[1]) == 1)
+			if (len(gameDateArray[1]) == 1)
 				{
 				gameDateArray[1] = "0" $ gameDateArray[1];
-				}			
+				}		
+				
 			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
-			strMission $= ' - '$ Descriptions[4];											// This is the final line in the save box (i.e in-game-date + operation name)
-			}
+
+			if(`GETMCMVAR(SHOW_MISSION_LOCATION_ON_SAVE_LOAD))
+				{
+				strMission $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the final line in the save box (i.e in-game-date + time + description)
+				}
+			else
+				{
+				strMission $= ' - '$ gameTime $ ' - ' $ Descriptions[4];						// This is the final line in the save box (i.e in-game-date + time + location)
+				}
+		}
+
 		if (Descriptions.Length == 6) // We saved on the Geoscape
 			{
 			gameHour=Int(Left(Descriptions[5],2));			//Put the in-game time into integer variables	
@@ -179,9 +275,13 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 				
 				If(InStr(Left(Descriptions[5],8),"PM") !=INDEX_NONE)		
 				{			
-				gameHour=Int(Left(Descriptions[5],2))+12;	//If "PM" is in the string, add 12			
+				gameHour=Int(Left(Descriptions[5],2));	//If "PM" is in the string, add 12							
+					if(gameHour < 12)
+					{
+					gameHour += 12;
+					}					
 				}	
-					
+				
 				gameHourString="";
 				gameHourString$=gameHour;
 				If (Len(gameHourString)==1)
@@ -209,7 +309,7 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 				}
 			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];
 			
-			if (b24hClock)
+			if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
 				{	
 				strMission $= ' - ' $ gameTime;
 				}
@@ -266,7 +366,7 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 	myArray.AddItem(myValue);
 
 	//rename label
-	if (!class'UILoadProperSort'.default.SeparateSaveGamesByCampaign)
+	if (!`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 		myValue.s = m_RenameCampaign;
 	else
 		myValue.s = "";
@@ -282,11 +382,11 @@ simulated function ShowHighlight()
 
 	if (`ISCONTROLLERACTIVE)
 	{
-		AcceptButton.Show();
+	//	AcceptButton.Show();
 		AcceptButton.OnReceiveFocus();
 	//	RenameButton.Show();
-	//	RenameButton.OnReceiveFocus();
-		DeleteButton.Show();
+		RenameButton.OnReceiveFocus();
+	//	DeleteButton.Show();
 		DeleteButton.OnReceiveFocus();
 	}
 }
@@ -301,7 +401,7 @@ simulated function HideHighlight()
 	//	AcceptButton.Hide();
 		AcceptButton.OnLoseFocus();
 	//	RenameButton.Hide();
-	//	RenameButton.OnLoseFocus();
+		RenameButton.OnLoseFocus();
 	//	DeleteButton.Hide();
 		DeleteButton.OnLoseFocus();
 	}
@@ -318,13 +418,13 @@ simulated function OnReceiveFocus()
 		MC.FunctionVoid("mouseIn");
 
 		AcceptButton.SetText(GetAcceptLabel(Index == 0));
-		`log("Setting recieve focus");
+		//`log("Setting recieve focus");
 		AcceptButton.OnReceiveFocus();
-		AcceptButton.Show();
-	//	RenameButton.OnReceiveFocus();
+	//	AcceptButton.Show();
+		RenameButton.OnReceiveFocus();
 	//	RenameButton.Show();
 		DeleteButton.OnReceiveFocus();
-		DeleteButton.Show();
+	//	DeleteButton.Show();
 	}
 }
 
@@ -336,12 +436,13 @@ simulated function OnLoseFocus()
 	}
 	else
 	{
+		`log("OnLoseFocus Called",,'BDLOG');
 		MC.FunctionVoid("mouseOut");
 		//AcceptButton.Hide();
-		`log("Setting lose focus");
+		//`log("Setting lose focus");
 		AcceptButton.OnLoseFocus();
 		//RenameButton.Hide();
-		//RenameButton.OnLoseFocus();
+		RenameButton.OnLoseFocus();
 		//DeleteButton.Hide();
 		DeleteButton.OnLoseFocus();
 	}
@@ -429,7 +530,7 @@ simulated function UpdateData(OnlineSaveGame save)
 		strCampaignName = class'SaveGameNamingManager'.static.GetSaveName(Header.GameNum);
 
 		//Put the custom campaign name or campaign number in brackets at the end of the first line
-		if(!class'UILoadProperSort'.default.SeparateSaveGamesByCampaign)
+		if(!`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 		{
 			if (strCampaignName != "")
 			{
@@ -462,9 +563,12 @@ simulated function UpdateData(OnlineSaveGame save)
 				
 				If(InStr(Left(Descriptions[5],8),"PM") !=INDEX_NONE)		
 				{			
-				gameHour=Int(Left(Descriptions[5],2))+12;	//If "PM" is in the string, add 12			
-				}	
-					
+				gameHour=Int(Left(Descriptions[5],2)); // Get the hour from the save description
+					if(gameHour < 12)
+					{
+					gameHour += 12; //Required so that 12pm is ignored
+					}									
+				}						
 				gameHourString="";
 				gameHourString$=gameHour;
 				If (Len(gameHourString)==1)
@@ -492,8 +596,8 @@ simulated function UpdateData(OnlineSaveGame save)
 				}
 			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];
 			
-			if (b24hClock)
-				{	
+			if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+				{
 				strMission $= ' - ' $ gameTime;
 				}
 				else
@@ -545,7 +649,7 @@ simulated function UpdateData(OnlineSaveGame save)
 	DeleteButton.SetText(myValue.s);
 
 	//rename label
-	myValue.s = bIsSaving? m_sRenameLabel: " ";
+	myValue.s = bIsSaving? " ": m_sRenameLabel;
 	myArray.AddItem(myValue);
 
 	Invoke("updateData", myArray);
@@ -557,7 +661,7 @@ simulated function string FormatTime( string HeaderTime )
 	
 	// HeaderTime is in 24h format
 	FormattedTime = HeaderTime;
-	if( GetLanguage() == "INT" && !b24hClock)
+	if( GetLanguage() == "INT" && !`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
 	{
 		FormattedTime = `ONLINEEVENTMGR.FormatTimeStampFor12HourClock(FormattedTime);
 	}

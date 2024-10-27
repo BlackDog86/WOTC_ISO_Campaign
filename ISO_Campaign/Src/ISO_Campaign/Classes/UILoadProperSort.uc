@@ -2,10 +2,17 @@ class UILoadProperSort extends UILoadGame config(Game);
 
 var localized string m_RenameCampaign;
 var localized string m_LoadFromCampaign;
+var localized string m_sDeleteAllSaveTitle;
+var localized string m_sDeleteAllSaveText;
+var localized string m_sDeleteConfirmText;
+var localized string m_sNameSave;
+
 var int CurrentlySelectedCampaignIndex;
 var array<int> AvailableCampaignIndex;
 var array<UISaveGameCampaignSelectItem> m_arrListCampaign;
-var config bool SeparateSaveGamesByCampaign;
+var OnlineSaveGame			SaveGame;
+
+`include(ISO_Campaign\Src\ModConfigMenuAPI\MCM_API_CfgHelpers.uci)
 
 simulated function OnInit()
 {
@@ -47,9 +54,9 @@ simulated function OnReadSaveGameListComplete(bool bWasSuccessful)
 	{
 		if (AvailableCampaignIndex.Find(m_arrSaveGames[i].SaveGames[0].SaveGameHeader.GameNum) == INDEX_NONE)
 			AvailableCampaignIndex.AddItem(m_arrSaveGames[i].SaveGames[0].SaveGameHeader.GameNum);
-	}
-	
-	BuildMenu();
+	}		
+
+	BuildMenu();		
 	// Close progress dialog
 	Movie.Stack.PopFirstInstanceOfClass(class'UIProgressDialogue', false);
 }
@@ -66,7 +73,8 @@ simulated function BuildMenu()
 
 	ItemIndex = 0;
 
-	if (SeparateSaveGamesByCampaign)
+	`log("CurrentlySelectedCampaignIndex (load) is:" @ CurrentlySelectedCampaignIndex,,'BDLOG');
+	if (`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 	{
 		if (CurrentlySelectedCampaignIndex == -1)
 		{
@@ -77,9 +85,10 @@ simulated function BuildMenu()
 				if (ShownIndex.Find(Index) == INDEX_NONE && AvailableCampaignIndex.Find(Index) != INDEX_NONE)
 				{
 					ShownIndex.AddItem(Index);
-					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAcceptCamp, OnRename, SetSelectionCamp));
-					m_arrListCampaign[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
+					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAcceptCamp, OnRenameCamp, OnDeleteCamp, SetSelectionCamp));
+					m_arrListCampaign[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);			
 				}
+				
 			}
 		}
 		else
@@ -89,7 +98,7 @@ simulated function BuildMenu()
 			{
 				if (CurrentlySelectedCampaignIndex == m_arrSaveGames[i].SaveGames[0].SaveGameHeader.GameNum)
 				{
-					m_arrListItems.AddItem(Spawn(class'UISaveLoadGameListItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRename, SetSelection));
+					m_arrListItems.AddItem(Spawn(class'UISaveLoadItemWithNames', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRename, SetSelection));
 					m_arrListItems[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
 				}
 			}
@@ -100,13 +109,13 @@ simulated function BuildMenu()
 		SetTitle(m_sLoadTitle);
 		for( i = 0; i < m_arrSaveGames.Length; i++ )
 		{
-			m_arrListItems.AddItem(Spawn(class'UISaveLoadGameListItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRename, SetSelection));
+			m_arrListItems.AddItem(Spawn(class'UISaveLoadItemWithNames', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRenameCamp, SetSelection));
 			m_arrListItems[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
 		}
 	}
 	
 	m_iCurrentSelection = -1;
-	SetTimer(0.25f, false, nameof(UpdateAllSaves));
+	SetTimer(0.3f, false, nameof(UpdateAllSaves));
 }
 
 simulated static function QuickSort(int start_idx, int len, out array<OnlineSaveGame> SaveList)
@@ -199,7 +208,7 @@ simulated function string GetCurrentSelectedCampaignName()
 {
 	local string SaveName;
 
-	if (SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex == -1)
+	if (`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
 	{
 		SaveName = class'SaveGameNamingManager'.static.GetSaveName(m_arrListCampaign[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum);
 	}
@@ -211,16 +220,21 @@ simulated function string GetCurrentSelectedCampaignName()
 	return SaveName;
 }
 
-simulated public function OnRename(optional UIButton control)
+simulated public function OnRenameCamp(optional UIButton control)
 {
 	local TInputDialogData kData;
 
-	kData.strTitle = m_RenameCampaign;
-	kData.iMaxChars = 40;
-	kData.strInputBoxText = GetCurrentSelectedCampaignName();
-	kData.fnCallbackAccepted = SetCurrentSelectedFilenameX;
+		kData.strTitle = m_RenameCampaign;
+		kData.iMaxChars = 40;
+		kData.strInputBoxText = GetCurrentSelectedCampaignName();
+		kData.fnCallbackAccepted = SetCurrentSelectedFilenameX;
 	
 	Movie.Pres.UIInputDialog(kData);
+}
+
+simulated public function OnRename(optional UIButton control)
+{
+
 }
 
 simulated public function OnAcceptCamp(optional UIButton control)
@@ -244,6 +258,61 @@ simulated public function OnAcceptCamp(optional UIButton control)
 	}
 }
 
+simulated public function OnDeleteCamp(optional UIButton control)
+{
+	local TDialogueBoxData kDialogData;
+
+	Movie.Pres.PlayUISound(eSUISound_MenuSelect);
+
+	// Warn before deleting save
+	kDialogData.eType     = eDialog_Warning;
+	kDialogData.strTitle  = m_sDeleteAllSaveTitle;
+	kDialogData.strText   = m_sDeleteAllSaveText;
+	kDialogData.strAccept = m_sDeleteConfirmText;
+	kDialogData.strCancel = class'UIDialogueBox'.default.m_strDefaultCancelLabel;
+
+	kDialogData.fnCallback  = DeleteAllSaveWarningCampaignCallback;
+	`log("deleting campaign",,'BDLOG');
+	Movie.Pres.UIRaiseDialog( kDialogData );
+}
+
+simulated function DeleteAllSaveWarningCampaignCallback(Name eAction)
+{
+	if (eAction == 'eUIAction_Accept')
+	{
+		DeleteAllSavesInCampaign();		
+	}
+}
+
+// Somehow, in this function we need to the items in m_arrSaveGames which have the matching campaign ID number to the current selection
+simulated function DeleteAllSavesInCampaign()
+{
+	local SaveGameHeader	CampaignHeader, IndividualGameHeader;
+	local int				SaveIdx;
+
+	//Fill the local var with the save games
+	`ONLINEEVENTMGR.GetSaveGames(m_arrSaveGames);
+
+	//Use the campaign header from the dummy save game in the class to get the info
+	CampaignHeader = SaveGame.SaveGames[0].SaveGameHeader;
+	//`log("Campaign number is " @ CampaignHeader.GameNum);
+
+	//Loop through all the games in the folder
+	SaveIdx = 0;	
+	while (SaveIdx < m_arrSaveGames.length)
+	{
+		//Get the header
+		IndividualGameHeader = m_arrSaveGames[SaveIdx].SaveGames[0].SaveGameHeader;
+		// Match the menu item campaign gamenumber with the individual game campaign number
+		If(IndividualGameHeader.GameNum == CampaignHeader.GameNum)
+		{
+		//Delete the game if it matches
+		`ONLINEEVENTMGR.DeleteSaveGame(GetSaveID(SaveIdx));
+		}
+		++SaveIdx;
+	}	
+}
+
 simulated function SetSelectionCamp(int currentSelection)
 {
 	local int i;
@@ -262,7 +331,7 @@ simulated function SetSelectionCamp(int currentSelection)
 	
 	if (m_iCurrentSelection < 0)
 	{
-		`log("m_iCurrentSelection is:" @ m_iCurrentSelection);
+		//`log("m_iCurrentSelection is:" @ m_iCurrentSelection);
 		m_iCurrentSelection = GetNumSaves();
 	}
 	else if (m_iCurrentSelection > GetNumSaves())
@@ -286,7 +355,7 @@ simulated function SetCurrentSelectedFilenameX(string text)
 {	
 	local int RenameCampaignIndex;
 	text = Repl(text, "\n", "", false);
-	if (SeparateSaveGamesByCampaign)
+	if (`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 	{
 		if (CurrentlySelectedCampaignIndex == -1)
 		{
@@ -318,19 +387,19 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 	//if( !QueryAllImagesLoaded() ) return true; //If allow input before the images load, you will crash. Serves you right. -bsteiner
 		If(`ISCONTROLLERACTIVE)
 		{
-		`log("Controller is active");
+		//`log("Controller is active");
 		}
 		Else
 		{
-		`log("Controller is not active, but should be?");
+		//`log("Controller is not active, but should be?");
 		}
 
 	switch(cmd)
 	{
 		case (class'UIUtilities_Input'.const.FXS_BUTTON_A):
 		case (class'UIUtilities_Input'.const.FXS_KEY_ENTER):		
-			`log("Accept button of over-ride hit");
-			If(SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex == -1)
+			//`log("Accept button of over-ride hit");
+			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
 			{
 			OnAcceptCamp();
 			}
@@ -342,23 +411,30 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		
 		case (class'UIUtilities_Input'.const.FXS_BUTTON_Y):
 		case (class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR):
-			`log("Rename button hit");
+			//`log("Rename button hit");
+			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
+			{
+			OnRenameCamp();
+			}
+			Else
+			{
 			OnRename();
+			}
 			return true;
 
 		case (class'UIUtilities_Input'.const.FXS_BUTTON_B):
 		case (class'UIUtilities_Input'.const.FXS_KEY_ESCAPE):
 		case (class'UIUtilities_Input'.const.FXS_R_MOUSE_DOWN):
-			`log("Cancel button of over-ride hit");
+			//`log("Cancel button of over-ride hit");
 			OnCancel();
 			return true;
 
 		case (class'UIUtilities_Input'.const.FXS_BUTTON_X):
 		case (class'UIUtilities_Input'.const.FXS_KEY_DELETE):			
-			If(SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex == -1 && class'UISaveGameCampaignSelectItem'.default.bEnableDeleteCampaignButton)
+			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1 && `GETMCMVAR(ENABLE_DELETE_CAMPAIGN_BUTTON))
 			{
 			`log("Delete button hit");
-			//OnDeletetCampaign();
+			OnDeleteCamp();
 			}
 			Else
 			{
@@ -370,7 +446,7 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case class'UIUtilities_Input'.const.FXS_ARROW_UP:
 		case class'UIUtilities_Input'.const.FXS_VIRTUAL_LSTICK_UP:
 		case class'UIUtilities_Input'.const.FXS_KEY_W:
-			`log("Pad up method of over-ride hit");
+			//`log("Pad up method of over-ride hit");
 			OnUDPadUp();
 			return true;  //bsg-jrebar (4.6.17): return once handled else will get caught in loop of unhandled input causing errors
 			break;
@@ -379,7 +455,7 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case class'UIUtilities_Input'.const.FXS_ARROW_DOWN:
 		case class'UIUtilities_Input'.const.FXS_VIRTUAL_LSTICK_DOWN:
 		case class'UIUtilities_Input'.const.FXS_KEY_S:
-			`log("Pad down method of over-ride hit");
+			//`log("Pad down method of over-ride hit");
 			OnUDPadDown();
 			return true;  //bsg-jrebar (4.6.17): return once handled else will get caught in loop of unhandled input causing errors
 			break;
@@ -387,7 +463,7 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		default:
 			break;			
 	}
-	`log("Deferring to parent class"); // always give base class a chance to handle the input so key input is propogated to the panel's navigator
+	//`log("Deferring to parent class"); // always give base class a chance to handle the input so key input is propogated to the panel's navigator
 	return super.OnUnrealCommand(cmd, arg);
 }
 
@@ -402,17 +478,22 @@ simulated public function OnUDPadUp()
 		PlaySound( SoundCue'SoundUI.MenuScrollCue', true );
 	}
 
-	`log("m_iCurrentSelection =" @ m_iCurrentSelection);
-	`log("NewSel ="@newSel);
-	`log("numSaves="@numSaves);	
+	//`log("m_iCurrentSelection =" @ m_iCurrentSelection);
+	//`log("NewSel ="@newSel);
+	//`log("numSaves="@numSaves);	
 	newSel = m_iCurrentSelection - 1;
 	
-	`log("List item array length =" @ m_arrListItems.length);
-	`log("List item campaign length =" @ m_arrListCampaign.length);
+	//`log("LoadNewSel ="@newSel);
+	//`log("LoadnumSaves="@numSaves);
+	//`log("LoadList item array length =" @ m_arrListItems.length);
+	//`log("LoadList item campaign length =" @ m_arrListCampaign.length);
+
+	//`log("List item array length =" @ m_arrListItems.length);
+	//`log("List item campaign length =" @ m_arrListCampaign.length);
 
 	if (newSel < 0)
 		//if we've gone off the top of the campaign select menu
-		If(SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex == -1)
+		If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
 		{
 			newSel = m_arrListCampaign.length - 1;
 		}
@@ -422,14 +503,14 @@ simulated public function OnUDPadUp()
 			newSel = m_arrListItems.length - 1;
 		}
 	
-	`log("Selected campaign index is:" @ CurrentlySelectedCampaignIndex);
-	If(SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex == -1)
+	//`log("Selected campaign index is:" @ CurrentlySelectedCampaignIndex);
+	If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
 			{
 				If (newSel >= m_arrListCampaign.length)
 				{
 				newSel=0;
 				}
-			`log("SetSelectionCamp fired");
+			//`log("SetSelectionCamp fired");
 			SetSelectionCamp(newSel);
 			}
 			Else
@@ -438,7 +519,7 @@ simulated public function OnUDPadUp()
 				{
 				newSel=0;
 				}								
-			`log("SetSelection Fired");
+			//`log("SetSelection Fired");
 			SetSelection(newSel);
 			}		
 }
@@ -453,16 +534,21 @@ simulated public function OnUDPadDown()
 		PlaySound( SoundCue'SoundUI.MenuScrollCue', true );
 	}
 	
-	`log("m_iCurrentSelection =" @ m_iCurrentSelection);
-	`log("NewSel ="@newSel);
-	`log("numSaves="@numSaves);	
+	//`log("m_iCurrentSelection =" @ m_iCurrentSelection);
+	//`log("NewSel ="@newSel);
+	//`log("numSaves="@numSaves);	
+
+	//`log("LoadNewSel ="@newSel);
+	//`log("LoadnumSaves="@numSaves);
+	//`log("LoadList item array length =" @ m_arrListItems.length);
+	//`log("LoadList item campaign length =" @ m_arrListCampaign.length);
 
 	newSel = m_iCurrentSelection + 1;	
 
 	if (newSel >= numSaves)
 		newSel = 0;
 
-	If(SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex == -1)
+	If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
 			{
 				If (newSel >= m_arrListCampaign.length)
 				{
@@ -502,7 +588,7 @@ simulated function UpdateAllSaves()
 simulated public function OnCancel()
 {
 	Movie.Pres.PlayUISound(eSUISound_MenuClose);
-	if (SeparateSaveGamesByCampaign && CurrentlySelectedCampaignIndex > -1)
+	if (`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex > -1)
 	{
 		CurrentlySelectedCampaignIndex = -1;
 		BuildMenu();
