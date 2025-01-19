@@ -1,4 +1,4 @@
-class SaveGameNamingManager extends Object config(SaveNames);
+class SaveGameNamingManagerCampaign extends Object config(SaveNamesCampaign);
 
 struct SaveName
 {

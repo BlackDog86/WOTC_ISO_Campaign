@@ -1,13 +1,14 @@
 class UILoadProperSort extends UILoadGame config(Game);
 
-var localized string m_RenameCampaign;
-var localized string m_LoadFromCampaign;
-var localized string m_sNameSave;
+var localized string					m_RenameCampaign;
+var localized string					m_RenameSave;
+var localized string					m_LoadFromCampaign;
+var localized string					m_sNameSave;
 
-var int CurrentlySelectedCampaignIndex;
-var array<int> AvailableCampaignIndex;
+var int									CurrentlySelectedCampaignIndex;
+var array<int>							AvailableCampaignIndex;
 var array<UISaveGameCampaignSelectItem> m_arrListCampaign;
-var OnlineSaveGame			SaveGame;
+var OnlineSaveGame						SaveGame;
 
 `include(ISO_Campaign\Src\ModConfigMenuAPI\MCM_API_CfgHelpers.uci)
 
@@ -70,7 +71,7 @@ simulated function BuildMenu()
 
 	ItemIndex = 0;
 
-	`log("CurrentlySelectedCampaignIndex (load) is:" @ CurrentlySelectedCampaignIndex,,'BDLOG');
+	//`log("CurrentlySelectedCampaignIndex (load) is:" @ CurrentlySelectedCampaignIndex,,'BDLOG');
 	if (`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 	{
 		if (CurrentlySelectedCampaignIndex == -1)
@@ -90,12 +91,12 @@ simulated function BuildMenu()
 		}
 		else
 		{
-			SetTitle(m_LoadFromCampaign @ CurrentlySelectedCampaignIndex $ ":" @ class'SaveGameNamingManager'.static.GetSaveName(CurrentlySelectedCampaignIndex));
+			SetTitle(m_LoadFromCampaign @ CurrentlySelectedCampaignIndex $ ":" @ class'SaveGameNamingManagerCampaign'.static.GetSaveName(CurrentlySelectedCampaignIndex));
 			for( i = 0; i < m_arrSaveGames.Length; i++ )
 			{
 				if (CurrentlySelectedCampaignIndex == m_arrSaveGames[i].SaveGames[0].SaveGameHeader.GameNum)
 				{
-					m_arrListItems.AddItem(Spawn(class'UISaveLoadItemWithNames', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRename, SetSelection));
+					m_arrListItems.AddItem(Spawn(class'UISaveLoadItemWithNames', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRenameInd, SetSelection));
 					m_arrListItems[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
 				}
 			}
@@ -106,7 +107,7 @@ simulated function BuildMenu()
 		SetTitle(m_sLoadTitle);
 		for( i = 0; i < m_arrSaveGames.Length; i++ )
 		{
-			m_arrListItems.AddItem(Spawn(class'UISaveLoadItemWithNames', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRenameCamp, SetSelection));
+			m_arrListItems.AddItem(Spawn(class'UISaveLoadItemWithNames', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAccept, OnDelete, OnRenameInd, SetSelection));
 			m_arrListItems[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
 		}
 	}
@@ -207,11 +208,11 @@ simulated function string GetCurrentSelectedCampaignName()
 
 	if (`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
 	{
-		SaveName = class'SaveGameNamingManager'.static.GetSaveName(m_arrListCampaign[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum);
+		SaveName = class'SaveGameNamingManagerCampaign'.static.GetSaveName(m_arrListCampaign[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum);
 	}
 	else
 	{
-		SaveName = class'SaveGameNamingManager'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum);
+		SaveName = class'SaveGameNamingManagerCampaign'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum);
 	}
 
 	return SaveName;
@@ -229,9 +230,30 @@ simulated public function OnRenameCamp(optional UIButton control)
 	Movie.Pres.UIInputDialog(kData);
 }
 
-simulated public function OnRename(optional UIButton control)
+simulated public function OnRenameInd(optional UIButton control)
 {
 
+	local TInputDialogData kData;
+	local string AlreadyRenamedSave;
+
+	//`log("Campaign index:" @ currentlyselectedcampaignindex,,'BDLOG');
+	//`log("Campaign number:" @ m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum,,'BDLOG');
+
+	AlreadyRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].ID);
+		// Use the name from the config file in preference to the save file header, if it exists
+		if (AlreadyRenamedSave != "")
+		{
+			kData.strInputBoxText = AlreadyRenamedSave;
+		}
+		else
+		{
+			kData.strInputBoxText = GetCurrentSelectedFilename();
+		}
+		kData.strTitle = m_RenameSave;
+		kData.iMaxChars = 40;	
+		kData.fnCallbackAccepted = SetCurrentSelectedFilenameInd;
+	
+	Movie.Pres.UIInputDialog(kData);
 }
 
 simulated public function OnAcceptCamp(optional UIButton control)
@@ -312,7 +334,14 @@ simulated function SetCurrentSelectedFilenameX(string text)
 	{
 		RenameCampaignIndex = m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum;
 	}
-	class'SaveGameNamingManager'.static.SetSaveName(RenameCampaignIndex, text);
+	class'SaveGameNamingManagerCampaign'.static.SetSaveName(RenameCampaignIndex, text);
+	UpdateAllSaves();
+}
+
+simulated function SetCurrentSelectedFilenameInd(string text)
+{	
+	text = Repl(text, "\n", "", false);	
+	class'SaveGameNamingManagerIndividual'.static.SetSaveName(m_arrListItems[m_iCurrentSelection].ID,text);
 	UpdateAllSaves();
 }
 
@@ -341,7 +370,7 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case (class'UIUtilities_Input'.const.FXS_BUTTON_A):
 		case (class'UIUtilities_Input'.const.FXS_KEY_ENTER):		
 			//`log("Accept button of over-ride hit");
-			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
+			If(CurrentlySelectedCampaignIndex == -1)
 			{
 			OnAcceptCamp();
 			}
@@ -354,13 +383,13 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case (class'UIUtilities_Input'.const.FXS_BUTTON_Y):
 		case (class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR):
 			//`log("Rename button hit");
-			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1)
+			If(CurrentlySelectedCampaignIndex == -1)
 			{
 			OnRenameCamp();
 			}
 			Else
 			{
-			OnRename();
+			OnRenameInd();
 			}
 			return true;
 
@@ -522,7 +551,7 @@ simulated function UpdateAllSaves()
 	{
 		CampSlot = m_arrListCampaign[i];
 		if (CampSlot != none)
-			CampSlot.UpdateData(m_arrListCampaign[i].SaveGame);
+			CampSlot.UpdateDataCamp(m_arrListCampaign[i].SaveGame);
 	}
 }
 

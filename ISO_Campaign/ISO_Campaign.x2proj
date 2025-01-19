@@ -21,9 +21,6 @@
     <Content Include="Config\XComWOTC_ISO_Campaign_DEFAULT.ini">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Localization\ISO_Campaign.cht">
-      <SubType>Content</SubType>
-    </Content>
     <Content Include="Localization\ISO_Campaign.int">
       <SubType>Content</SubType>
     </Content>
@@ -63,7 +60,10 @@
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
     <Content Include="Localization\XComGame.int" />
-    <Content Include="Src\ISO_Campaign\Classes\SaveGameNamingManager.uc">
+    <Content Include="Src\ISO_Campaign\Classes\SaveGameNamingManagerCampaign.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\ISO_Campaign\Classes\SaveGameNamingManagerIndividual.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\ISO_Campaign\Classes\UILoadProperSort.uc">
@@ -87,8 +87,7 @@
     <Content Include="Src\ISO_Campaign\Classes\WOTC_ISO_Campaign_MCMScreenListener.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\ISO_Campaign\Classes\X2DownloadableContentInfo_ISO_Campaign.uc" />
-    <Content Include="Src\ISO_Campaign\Classes\X2StrategyGameRulesetDataStructures_ISO_Campaign.uc">
+    <Content Include="Src\ISO_Campaign\Classes\X2DownloadableContentInfo_ISO_Campaign.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\ModConfigMenuAPI\Classes\MCM_API.uc">

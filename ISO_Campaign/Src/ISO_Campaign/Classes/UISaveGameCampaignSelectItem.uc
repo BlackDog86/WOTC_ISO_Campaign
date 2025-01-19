@@ -16,6 +16,7 @@ var UIList					List;
 
 var localized string		m_SelectCampaignLabel;
 var localized string		m_DeleteCampaignLabel;
+var localized string		m_RenameCampaignLabel;
 var localized string		m_sDeleteAllLabel;
 var localized string		m_sDeleteAllSaveTitle;
 var localized string		m_sDeleteAllSaveText;
@@ -79,7 +80,7 @@ simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, 
 	
 	RenameButton = Spawn(class'UIButton', ButtonBG);
 	RenameButton.bIsNavigable = false;
-	RenameButton.InitButton('Button1', class'UISaveLoadItemWithNames'.default.m_RenameCampaign, RenameClickedDelegate);	
+	RenameButton.InitButton('Button2', default.m_DeleteCampaignLabel, OnDeleteCamp);	
 	if (`ISCONTROLLERACTIVE)
 	{
 		RenameButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
@@ -90,7 +91,7 @@ simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, 
 	
 	DeleteButton = Spawn(class'UIButton', ButtonBG);
 	DeleteButton.bIsNavigable = false;
-	DeleteButton.InitButton('Button2', default.m_DeleteCampaignLabel, OnDeleteCamp);	
+	DeleteButton.InitButton('Button1', default.m_RenameCampaignLabel, RenameClickedDelegate);	
 		
 		if (`ISCONTROLLERACTIVE) 
 		{
@@ -103,7 +104,7 @@ simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, 
 	
 	If(!`GETMCMVAR(ENABLE_DELETE_CAMPAIGN_BUTTON) || `ISCONTROLLERACTIVE)
 	{
-	DeleteButton.SetDisabled(true);
+	RenameButton.SetDisabled(true);
 	}
 	OnMouseIn = MouseInDelegate;
 
@@ -122,7 +123,7 @@ simulated function OnInit()
 {
 	super.OnInit();
 
-	UpdateData(SaveGame);
+	UpdateDataCamp(SaveGame);
 	if (`ISCONTROLLERACTIVE) 
 	{
 		//Initially when UpdateData gets called, it invokes the actionscript's UpdateData function
@@ -237,7 +238,7 @@ simulated function HideHighlight()
 	}
 }
 
-simulated function UpdateData(OnlineSaveGame save)
+simulated function UpdateDataCamp(OnlineSaveGame save)
 {
 	local ASValue myValue;
 	local Array<ASValue> myArray;
@@ -308,7 +309,7 @@ simulated function UpdateData(OnlineSaveGame save)
 		strTime = saveDateArray[2] $'-'$ saveDateArray[0] $'-'$ saveDateArray[1] $' - '$ dateTimeArray[1]; // This is actually the date & time concatenated together
 		strDate = strTime; // StrDate is the whole first line of the save/load box (Date + time + user save description)
 		strName = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum;	 // StrName is the second line - Get the campaign 
-		strCampaignName = class'SaveGameNamingManager'.static.GetSaveName(Header.GameNum);
+		strCampaignName = class'SaveGameNamingManagerCampaign'.static.GetSaveName(Header.GameNum);
 
 		//Put the custom campaign name or campaign number at the end of the first line
 		if (strCampaignName != "")
@@ -495,7 +496,7 @@ simulated function UpdateData(OnlineSaveGame save)
 	myArray.AddItem(myValue);
 
 	//rename label
-	myValue.s = class'UISaveLoadItemWithNames'.default.m_RenameCampaign;
+	myValue.s = default.m_RenameCampaignLabel;
 	myArray.AddItem(myValue);
 
 	//delete campaign label
@@ -542,11 +543,12 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 	{
 	case class'UIUtilities_Input'.const.FXS_BUTTON_A:
 	case class'UIUtilities_Input'.const.FXS_KEY_ENTER:
-	case class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR:
+
 		AcceptButton.Click();
 		return true;
 		
 	case class'UIUtilities_Input'.const.FXS_BUTTON_Y:
+	case (class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR):
 		if( RenameButton.IsVisible() )
 		{
 			RenameButton.Click();
@@ -572,7 +574,7 @@ simulated public function OnDeleteCamp(optional UIButton control)
 	kDialogData.strCancel = class'UIDialogueBox'.default.m_strDefaultCancelLabel;
 
 	kDialogData.fnCallback  = DeleteAllSaveWarningCampaignCallback;
-	`log("deleting campaign",,'BDLOG');
+	//`log("deleting campaign",,'BDLOG');
 	Movie.Pres.UIRaiseDialog( kDialogData );
 }
 

@@ -1,13 +1,18 @@
 [UISaveProperSort]
 m_RenameCampaign="RENAME CAMPAIGN"
+m_RenameSave="RENAME"
 m_SaveToCampaign="Save game to Campaign"
 
 [UILoadProperSort]
 m_RenameCampaign="RENAME CAMPAIGN"
+m_RenameSave="RENAME"
 m_LoadFromCampaign="Loading game from Campaign"
 
 [UISaveLoadItemWithNames]
-m_RenameCampaign="RENAME CAMPAIGN"
+m_RenameLabel="RENAME"
+
+[UISaveGameCampaignSelectItem]
+m_RenameCampaignLabel="RENAME CAMPAIGN"
 
 [UISaveGameCampaignSelectItem]
 m_SelectCampaignLabel="SELECT CAMPAIGN"
@@ -28,11 +33,15 @@ SEPARATE_BY_CAMPAIGN_Tip = "Disble this check-mark to display all saved games in
 ENABLE_DELETE_CAMPAIGN_BUTTON_Label = "Delete campaign button"
 ENABLE_DELETE_CAMPAIGN_BUTTON_Tip = "Delete button is enabled when this box is checked."
 
-TWENTY_FOUR_HOUR_CLOCK_Label = "24 hour clock"
+TWENTY_FOUR_HOUR_CLOCK_Label = "Use 24 hour clock in save files"
 TWENTY_FOUR_HOUR_CLOCK_Tip = "24h Clock is enabled when this box is checked."
+
+TWENTY_FOUR_HOUR_CLOCK_ON_GEOSCAPE_Label = "Use 24 hour clock on the geoscape"
+TWENTY_FOUR_HOUR_CLOCK_ON_GEOSCAPE_Tip = "24h Clock is enabled when this box is checked."
 
 SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Label = "Show mission location on Campaign Summary"
 SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Tip = "When checked, shows the mission location instead of op. name on line 3"
 
 SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Label = "Show mission location on main Save/Load Screens"
 SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Tip = "When checked, shows the mission location instead of op. name on line 3"
+
