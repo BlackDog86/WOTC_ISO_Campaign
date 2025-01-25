@@ -183,7 +183,7 @@ simulated public function OnRenameInd(optional UIButton control)
 	//	}	
 	else
 	{
-		AlreadyRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].ID);
+		AlreadyRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName);
 		// Use the name from the config file in preference to the save file header, if it exists
 		if (AlreadyRenamedSave != "")
 		{
@@ -223,6 +223,18 @@ simulated function DeleteAllSaveWarningCampaignCallback(Name eAction)
 	if (eAction == 'eUIAction_Accept')
 	{
 		DeleteAllSavesInCampaign();		
+	}
+}
+
+simulated function OverwritingSaveWarningCallback(Name eAction)
+{
+
+	if (eAction == 'eUIAction_Accept')
+	{
+		// Need to get the name of the old save, store it in a variable, remove the old save game name from the dictionary 
+		// then add the old save game name to the new save ID, when over-writing
+		`ONLINEEVENTMGR.SetPlayerDescription(GetCurrentSelectedFilename());
+		Save();
 	}
 }
 
@@ -280,7 +292,8 @@ simulated function SetCurrentSelectedFilenameX(string text)
 simulated function SetCurrentSelectedFilenameInd(string text)
 {	
 	text = Repl(text, "\n", "", false);	
-	class'SaveGameNamingManagerIndividual'.static.SetSaveName(m_arrListItems[m_iCurrentSelection].ID,text);
+	`log("CurrentSelection ID is:" @ m_arrListItems[m_iCurrentSelection].ID,,'BDLOG');
+	class'SaveGameNamingManagerIndividual'.static.SetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName,text);
 	UpdateAllSaves();
 }
 
@@ -507,6 +520,7 @@ simulated public function OnDelete(optional UIButton control)
 
 simulated function DeleteSelectedSaveFile()
 {
+	class'SaveGameNamingManagerIndividual'.static.RemoveSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName);
 	`ONLINEEVENTMGR.DeleteSaveGame( GetSaveIDSelection(m_iCurrentSelection) );
 }
 

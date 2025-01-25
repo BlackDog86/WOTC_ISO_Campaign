@@ -239,7 +239,7 @@ simulated public function OnRenameInd(optional UIButton control)
 	//`log("Campaign index:" @ currentlyselectedcampaignindex,,'BDLOG');
 	//`log("Campaign number:" @ m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].SaveGameHeader.GameNum,,'BDLOG');
 
-	AlreadyRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].ID);
+		AlreadyRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName);
 		// Use the name from the config file in preference to the save file header, if it exists
 		if (AlreadyRenamedSave != "")
 		{
@@ -341,7 +341,7 @@ simulated function SetCurrentSelectedFilenameX(string text)
 simulated function SetCurrentSelectedFilenameInd(string text)
 {	
 	text = Repl(text, "\n", "", false);	
-	class'SaveGameNamingManagerIndividual'.static.SetSaveName(m_arrListItems[m_iCurrentSelection].ID,text);
+	class'SaveGameNamingManagerIndividual'.static.SetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName,text);
 	UpdateAllSaves();
 }
 
@@ -689,6 +689,7 @@ simulated public function OnDelete(optional UIButton control)
 
 simulated function DeleteSelectedSaveFile()
 {
+	class'SaveGameNamingManagerIndividual'.static.RemoveSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName);
 	`ONLINEEVENTMGR.DeleteSaveGame( GetSaveIDSelection(m_iCurrentSelection) );
 }
 

@@ -17,3 +17,13 @@ static event OnPostTemplatesCreated()
 	class'CHHelpers'.default.bForce24hClock = `GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK_ON_GEOSCAPE);	
 	class'CHHelpers'.default.bForce24hClockLeadingZero = `GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK_ON_GEOSCAPE);
 }
+
+exec function PurgeRenamedSavesLibrary()
+{
+	class'SaveGameNamingManagerIndividual'.default.SaveNameDictInd.Length = 0;
+}
+
+exec function PurgedRenamedCampaignsLibrary()
+{
+	class'SaveGameNamingManagerCampaign'.default.SaveNameDict.Length = 0;
+}

@@ -26,7 +26,8 @@ simulated function UISaveLoadGameListItem InitSaveLoadItem(int listIndex, Online
 	local XComOnlineEventMgr OnlineEventMgr;
 
 	OnlineEventMgr = `ONLINEEVENTMGR;
-
+	`log("SaveLoadItem Inited: Save Filename:" @ save.Filename,,'BDLOG');
+	`log("SaveLoadItem Inited: ID:" @ OnlineEventMgr.SaveNameToID(save.Filename),,'BDLOG');
 	ID = OnlineEventMgr.SaveNameToID(save.Filename);
 	InitPanel();
 	Index = listIndex;
@@ -181,7 +182,7 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 		//We've made a normal save game
 		strCampaignName = class'SaveGameNamingManagerCampaign'.static.GetSaveName(Header.GameNum);
 		// If we've used the 'rename save' feature, pull from the config array
-		strRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(Header.SaveID);
+		strRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(save.SaveGames[0].InternalFileName);
 		//`log("strRenamedSave: " @ strRenamedSave,,'BDLOG');
 		if (strRenamedSave != "")
 		{
