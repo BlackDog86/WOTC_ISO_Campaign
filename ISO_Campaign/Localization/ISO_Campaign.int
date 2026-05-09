@@ -45,3 +45,4 @@ SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Tip = "When checked, shows the mission 
 SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Label = "Show mission location on main Save/Load Screens"
 SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Tip = "When checked, shows the mission location instead of op. name on line 3"
 
+GO_DIRECTLY_TO_MOST_RECENT_CAMPAIN_Label = "Skip campaign selection menu"

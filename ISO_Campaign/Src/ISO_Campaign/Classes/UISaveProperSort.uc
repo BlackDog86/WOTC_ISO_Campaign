@@ -292,7 +292,7 @@ simulated function SetCurrentSelectedFilenameX(string text)
 simulated function SetCurrentSelectedFilenameInd(string text)
 {	
 	text = Repl(text, "\n", "", false);	
-	`log("CurrentSelection ID is:" @ m_arrListItems[m_iCurrentSelection].ID,,'BDLOG');
+	//`log("CurrentSelection ID is:" @ m_arrListItems[m_iCurrentSelection].ID,,'BDLOG');
 	class'SaveGameNamingManagerIndividual'.static.SetSaveName(m_arrListItems[m_iCurrentSelection].SaveGame.SaveGames[0].InternalFileName,text);
 	UpdateAllSaves();
 }

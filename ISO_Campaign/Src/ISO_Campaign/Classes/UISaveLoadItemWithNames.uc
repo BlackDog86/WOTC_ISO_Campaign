@@ -26,8 +26,8 @@ simulated function UISaveLoadGameListItem InitSaveLoadItem(int listIndex, Online
 	local XComOnlineEventMgr OnlineEventMgr;
 
 	OnlineEventMgr = `ONLINEEVENTMGR;
-	`log("SaveLoadItem Inited: Save Filename:" @ save.Filename,,'BDLOG');
-	`log("SaveLoadItem Inited: ID:" @ OnlineEventMgr.SaveNameToID(save.Filename),,'BDLOG');
+	//`log("SaveLoadItem Inited: Save Filename:" @ save.Filename,,'BDLOG');
+	//`log("SaveLoadItem Inited: ID:" @ OnlineEventMgr.SaveNameToID(save.Filename),,'BDLOG');
 	ID = OnlineEventMgr.SaveNameToID(save.Filename);
 	InitPanel();
 	Index = listIndex;
@@ -447,7 +447,7 @@ simulated function OnLoseFocus()
 	}
 	else
 	{
-		`log("OnLoseFocus Called",,'BDLOG');
+		//`log("OnLoseFocus Called",,'BDLOG');
 		MC.FunctionVoid("mouseOut");
 		//AcceptButton.Hide();
 		//`log("Setting lose focus");

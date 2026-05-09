@@ -16,14 +16,15 @@ static function string GetSaveName(string FileName)
 	local array<string> splitFileName;
 
 	ParseStringIntoArray(Repl(FileName, "save_Save ", ""), splitFileName, "_", true);
-	//`log("GetSaveName is looking for a match for save with Index:" @ SaveIndex,,'BDLOG');
+	
 
 	for (i = 0; i < default.SaveNameDictInd.Length; i++)
 	{	
 		Save = default.SaveNameDictInd[i];
+		//`log("Save-Filename:" @ Save.FileName @ "PassedInFileName:" @ FileName,,'BDLOG');
 		if (Save.FileName == FileName)
 		{
-			`log("GetSaveName found a save - FileName:" @ Save.FileName @ "Description:" @ Save.SaveName,,'BDLOG');
+			//`log("GetSaveName found a save - FileName:" @ Save.FileName @ "Description:" @ Save.SaveName,,'BDLOG');
 			return default.SaveNameDictInd[i].SaveName;
 		}
 		else if (Save.ParsedFileName == splitFileName[0])
@@ -41,15 +42,17 @@ static function SetSaveName(string FileName, string NewName)
 	local bool saveNameSet;
 	local array<string> splitFileName;
 	
-	//`log("Seting Save Name: SaveIndex:" @ SaveIndex,,'BDLOG');
-	ParseStringIntoArray(Repl(FileName, "save_Save ", ""), splitFileName, "_", true);
+	//`log("Seting Save Name: FileName:" @ FileName,,'BDLOG');
+
+	Repl(FileName, "Save ","");
+	ParseStringIntoArray(Repl(FileName, "save_", ""), splitFileName, "_", true);
 
 	for (i = 0; i < default.SaveNameDictInd.Length; i++)
 	{
 		Save = default.SaveNameDictInd[i];
 		if (Save.ParsedFileName == splitFileName[0])
 		{
-			`log("SetSaveName: Save Already Exists: Current Name:" @ Save.SaveName,,'BDLOG');
+			//`log("SetSaveName: Save Already Exists: Current Name:" @ Save.SaveName,,'BDLOG');
 			default.SaveNameDictInd[i].SaveName = NewName;
 			saveNameSet = true;
 		}
@@ -62,9 +65,10 @@ static function SetSaveName(string FileName, string NewName)
 	}
 	else
 	{	
-		`log("SetSaveName: Save doesn't already exist, adding entry to dictionary:" @ NewName,,'BDLOG');
+	//	`log("SetSaveName: Save doesn't already exist, adding entry to dictionary:" @ NewName,,'BDLOG');
 		EmptySave.FileName = FileName;
-		ParseStringIntoArray(Repl(FileName, "save_Save ", ""), splitFileName, "_", true);
+		Repl(FileName, "Save ","");
+		ParseStringIntoArray(Repl(FileName, "save_", ""), splitFileName, "_", true);
 		EmptySave.ParsedFileName = splitFileName[0];
 		EmptySave.SaveName = NewName;
 		default.SaveNameDictInd.AddItem(EmptySave);
@@ -78,14 +82,15 @@ static function RemoveSaveName(string FileName)
 	local int i;
 	local array<string> splitFileName;
 
-	ParseStringIntoArray(Repl(FileName, "save_Save ", ""), splitFileName, "_", true);
+	Repl(FileName, "Save ","");
+	ParseStringIntoArray(Repl(FileName, "save_", ""), splitFileName, "_", true);
 	//`log("RemoveSaveName is looking for an entry to remove:" @ SaveIndex,,'BDLOG');	
 	for (i = 0; i < default.SaveNameDictInd.Length; i++)
 	{
 		Save = default.SaveNameDictInd[i];
 		if (Save.FileName == FileName || splitFileName[0] == Save.ParsedFileName)
 		{
-			`log("RemoveSaveName found an entry to delete - Removing from Dictionary: Name:" @ Save.SaveName,,'BDLOG');
+			//`log("RemoveSaveName found an entry to delete - Removing from Dictionary: Name:" @ Save.SaveName,,'BDLOG');
 			default.SaveNameDictInd.RemoveItem(Save);
 		}
 	StaticSaveConfig();

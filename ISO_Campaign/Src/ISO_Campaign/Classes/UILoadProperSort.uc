@@ -6,6 +6,8 @@ var localized string					m_LoadFromCampaign;
 var localized string					m_sNameSave;
 
 var int									CurrentlySelectedCampaignIndex;
+var int									MostRecentSaveID;
+var int									MostRecentCampaignIndex;
 var array<int>							AvailableCampaignIndex;
 var array<UISaveGameCampaignSelectItem> m_arrListCampaign;
 var OnlineSaveGame						SaveGame;
@@ -15,13 +17,21 @@ var OnlineSaveGame						SaveGame;
 simulated function OnInit()
 {
 	local XComGameState_CampaignSettings CampaignSetting;
-	
+
 	CampaignSetting = XComGameState_CampaignSettings(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings', true));
 	if (CampaignSetting != none)
 	{
 		CurrentlySelectedCampaignIndex = CampaignSetting.GameIndex;
 	}
 	super.OnInit();
+	
+	// Update this to pick the campaign which has the most recently saved game in it 
+	// rather than just the campaign with the highest index number
+	if(`GETMCMVAR(GO_DIRECTLY_TO_MOST_RECENT_CAMPAIN))
+	{
+		CurrentlySelectedCampaignIndex = MostRecentCampaignIndex;
+		BuildMenu();
+	}
 }
 
 simulated function OnReadSaveGameListComplete(bool bWasSuccessful)
@@ -48,13 +58,15 @@ simulated function OnReadSaveGameListComplete(bool bWasSuccessful)
 	QuickSort(0, m_arrSaveGames.Length, m_arrSaveGames); 
 
 	AvailableCampaignIndex.Length = 0;
+	MostRecentCampaignIndex = m_arrSaveGames[0].SaveGames[0].SaveGameHeader.GameNum;
+	
 	for (i = 0; i < m_arrSaveGames.Length; i ++)
-	{
+	{		
 		if (AvailableCampaignIndex.Find(m_arrSaveGames[i].SaveGames[0].SaveGameHeader.GameNum) == INDEX_NONE)
 			AvailableCampaignIndex.AddItem(m_arrSaveGames[i].SaveGames[0].SaveGameHeader.GameNum);
 	}		
 
-	BuildMenu();		
+	BuildMenu();
 	// Close progress dialog
 	Movie.Stack.PopFirstInstanceOfClass(class'UIProgressDialogue', false);
 }
@@ -265,7 +277,7 @@ simulated public function OnAcceptCamp(optional UIButton control)
 	{
 		SetSelectionCamp(UISaveGameCampaignSelectItem(control.Owner.Owner).Index);
 	}
-
+	
 	if (m_iCurrentSelection < 0 || m_iCurrentSelection >= AvailableCampaignIndex.Length )
 	{
 		PlaySound(SoundCue'SoundUI.MenuCancelCue', true);

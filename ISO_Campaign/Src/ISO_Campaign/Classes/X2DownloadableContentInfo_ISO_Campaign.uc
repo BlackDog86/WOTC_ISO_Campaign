@@ -23,7 +23,7 @@ exec function PurgeRenamedSavesLibrary()
 	class'SaveGameNamingManagerIndividual'.default.SaveNameDictInd.Length = 0;
 }
 
-exec function PurgedRenamedCampaignsLibrary()
+exec function PurgeRenamedCampaignsLibrary()
 {
 	class'SaveGameNamingManagerCampaign'.default.SaveNameDict.Length = 0;
 }
