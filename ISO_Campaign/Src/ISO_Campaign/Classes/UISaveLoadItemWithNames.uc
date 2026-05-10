@@ -68,6 +68,13 @@ simulated function UISaveLoadGameListItem InitSaveLoadItem(int listIndex, Online
 	RenameButton = Spawn(class'UIButton', ButtonBG);
 	RenameButton.bIsNavigable = false;
 	RenameButton.InitButton('Button2', m_sRenameLabel, RenameClickedDelegate);
+	if (`ISCONTROLLERACTIVE) 
+	{
+		RenameButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
+		RenameButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_Y_TRIANGLE); // bsg-jrebar (4.3.17): Unifying across platforms to X for delete
+		RenameButton.SetVisible(bIsFocused);
+	}
+
 	RenameButton.OnMouseEventDelegate = OnChildMouseEvent;
 	// RenameButton.Hide();
 
@@ -110,7 +117,7 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 	local ASValue myValue;
 	local Array<ASValue> myArray;
 	local XComOnlineEventMgr OnlineEventMgr;
-	local string FriendlyName, mapPath, strDate, strName, strMission, strTime, strCampaignName, strRenamedSave;
+	local string FriendlyName, mapPath, strDate, strName, strMission, strTime, strRenamedSave;
 	local bool bNewSave;
 	local array<string> Descriptions;	
 	local SaveGameHeader Header;
@@ -179,8 +186,6 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 	}
 	else
 	{
-		//We've made a normal save game
-		strCampaignName = class'SaveGameNamingManagerCampaign'.static.GetSaveName(Header.GameNum);
 		// If we've used the 'rename save' feature, pull from the config array
 		strRenamedSave = class'SaveGameNamingManagerIndividual'.static.GetSaveName(save.SaveGames[0].InternalFileName);
 		//`log("strRenamedSave: " @ strRenamedSave,,'BDLOG');
@@ -191,25 +196,17 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 		strTime = saveDateArray[2] $'-'$ saveDateArray[0] $'-'$ saveDateArray[1] $' - '$ dateTimeArray[1] $' - '; // This is actually the date & time concatenated together		
 		strDate = strTime $ (Descriptions.Length >= 3 ? Descriptions[2] : ""); // This goes on the first line of the save/load box (Date + time + user save description)
 				
-		//If we're not separating the saves by campaign, start by putting the campaign name/number on line 2
+		//If we're not separating the saves by campaign, put the campaign number at the start of line 3
 		if(!`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 		{
-			if (strCampaignName != "")
-			{
-				//Output custom campaign name
-				strName = strCampaignName @ ":";
-			}
-			else
-			{
 				//Output campaign number
-				strName = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum @ ":";
-			}	
-		}
-		//Then output the mission / geoscape string
-		strName @= Descriptions[3];
+				strMission = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum @ ":";	
+		}		
 
 		if (Descriptions.Length == 7) // We saved in a mission
 		{
+			//Output the mission string and operation type on line 2: 
+			strMission = Descriptions[4] $ ' - ' $ Descriptions[3];
 			
 			if(mid(Descriptions[6],1,1) == ":")
 			{
@@ -262,18 +259,10 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 			if (len(gameDateArray[1]) == 1)
 			{
 				gameDateArray[1] = "0" $ gameDateArray[1];
-			}		
-				
-			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
+			}			
+			strName = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
 
-			if(`GETMCMVAR(SHOW_MISSION_LOCATION_ON_SAVE_LOAD))
-			{
-				strMission $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the final line in the save box (i.e in-game-date + time + description)
-			}
-			else
-			{
-				strMission $= ' - '$ gameTime $ ' - ' $ Descriptions[4];						// This is the final line in the save box (i.e in-game-date + time + location)
-			}
+			strName $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the second line in the save box (i.e in-game-date + time + MISSION LOC.)
 		}
 
 		if (Descriptions.Length == 6) // We saved on the Geoscape
@@ -283,7 +272,8 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 			{
 				Descriptions[5] = "0" $ Descriptions[5]; //Ensure the time part is a consistent length irrespective of the 12h time in the header
 			}
-			
+			strMission = Descriptions[3] $ ' - ' $ Split(Mid(Descriptions[5],8,200), " ",true);
+
 			gameHour=Int(Left(Descriptions[5],2));			//Put the in-game time into integer variables	
 			gameMinute=Int(Mid(Descriptions[5],3,2));		
 				
@@ -321,15 +311,15 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 			{
 				gameDateArray[1] = "0" $ gameDateArray[1];
 			}
-			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];
+			strName = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];
 			
 			if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
 			{	
-				strMission $= ' - ' $ gameTime;
+				strName $= ' - ' $ gameTime;
 			}
 				else
 			{
-				strMission $= ' - ' $ Descriptions[5];
+				strName $= ' - ' $ Descriptions[5];
 			}
 		}
 	}

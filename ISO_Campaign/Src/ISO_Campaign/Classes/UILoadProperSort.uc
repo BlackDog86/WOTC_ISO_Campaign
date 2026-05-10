@@ -4,13 +4,16 @@ var localized string					m_RenameCampaign;
 var localized string					m_RenameSave;
 var localized string					m_LoadFromCampaign;
 var localized string					m_sNameSave;
-
+var array<OnlineSaveGame>				m_arrSaveGamesDeleteCheck;
 var int									CurrentlySelectedCampaignIndex;
 var int									MostRecentSaveID;
 var int									MostRecentCampaignIndex;
 var array<int>							AvailableCampaignIndex;
 var array<UISaveGameCampaignSelectItem> m_arrListCampaign;
 var OnlineSaveGame						SaveGame;
+var localized string					m_sDeleteAllSaveTitle;
+var localized string					m_sDeleteAllSaveText;
+var localized string					m_sDeleteConfirmText;
 
 `include(ISO_Campaign\Src\ModConfigMenuAPI\MCM_API_CfgHelpers.uci)
 
@@ -95,10 +98,9 @@ simulated function BuildMenu()
 				if (ShownIndex.Find(Index) == INDEX_NONE && AvailableCampaignIndex.Find(Index) != INDEX_NONE)
 				{
 					ShownIndex.AddItem(Index);
-					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAcceptCamp, OnRenameCamp, SetSelectionCamp));
+					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], false, OnAcceptCamp, OnRenameCamp, OnDeleteCamp, SetSelectionCamp));
 					m_arrListCampaign[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);			
-				}
-				
+				}				
 			}
 		}
 		else
@@ -207,6 +209,70 @@ simulated static function int SortByDate(OnlineSaveGame A, OnlineSaveGame B)
 		return -1;
 
 	return 0;
+}
+
+simulated public function OnDeleteCamp(optional UIButton control)
+{
+	local TDialogueBoxData kDialogData;
+
+	Movie.Pres.PlayUISound(eSUISound_MenuSelect);
+
+	// Warn before deleting save
+	kDialogData.eType     = eDialog_Warning;
+	kDialogData.strTitle  = m_sDeleteAllSaveTitle;
+	kDialogData.strText   = m_sDeleteAllSaveText;
+	kDialogData.strAccept = m_sDeleteConfirmText;
+	kDialogData.strCancel = class'UIDialogueBox'.default.m_strDefaultCancelLabel;
+
+	kDialogData.fnCallback  = DeleteAllSaveWarningCampaignCallback;
+	//`log("deleting campaign",,'BDLOG');
+	Movie.Pres.UIRaiseDialog( kDialogData );
+}
+
+simulated function DeleteAllSaveWarningCampaignCallback(Name eAction)
+{
+	if (eAction == 'eUIAction_Accept')
+	{
+		DeleteAllSavesInCampaign();		
+	}
+}
+
+// Somehow, in this function we need to the items in m_arrSaveGames which have the matching campaign ID number to the current selection
+simulated function DeleteAllSavesInCampaign()
+{
+	local SaveGameHeader	IndividualGameHeader;
+	local int				SaveIdx;	
+	
+	//Fill the local var with the save games
+	`ONLINEEVENTMGR.GetSaveGames(m_arrSaveGamesDeleteCheck);
+
+	CurrentlySelectedCampaignIndex = AvailableCampaignIndex[m_iCurrentSelection];	
+	//`log("Campaign index is" @ CurrentlySelectedCampaignIndex,,'BDLOG');
+
+	//Loop through all the games in the folder
+	SaveIdx = 0;	
+	while (SaveIdx < m_arrSaveGamesDeleteCheck.length)
+	{
+		//Get the header
+		IndividualGameHeader = m_arrSaveGamesDeleteCheck[SaveIdx].SaveGames[0].SaveGameHeader;
+		//`log("Campaign index of game:" @ IndividualGameHeader.SaveID @ "Is:" @ IndividualGameHeader.GameNum,,'BDLOG');
+		// Match the menu item campaign gamenumber with the individual game campaign number
+		If(IndividualGameHeader.GameNum == CurrentlySelectedCampaignIndex)
+		{
+		//Delete the game if it matches
+		//`log("Match found, deleting game",,'BDLOG');
+		`ONLINEEVENTMGR.DeleteSaveGame(GetSaveID(SaveIdx));
+		}
+		++SaveIdx;
+	}
+	OnCancel();
+}	
+
+simulated function  int GetSaveID(int iIndex)
+{
+	if (iIndex >= 0 && iIndex < m_arrSaveGamesDeleteCheck.Length)
+		return `ONLINEEVENTMGR.SaveNameToID(m_arrSaveGamesDeleteCheck[iIndex].Filename);
+	return -1;      //  if it's not in the save game list it can't be loaded 
 }
 
 simulated function InitScreen(XComPlayerController InitController, UIMovie InitMovie, optional name InitName)
@@ -416,7 +482,7 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case (class'UIUtilities_Input'.const.FXS_KEY_DELETE):			
 			If(`GETMCMVAR(SEPARATE_BY_CAMPAIGN) && CurrentlySelectedCampaignIndex == -1 && `GETMCMVAR(ENABLE_DELETE_CAMPAIGN_BUTTON))
 			{
-			//`log("Delete button hit");
+			OnDeleteCamp();
 			}
 			Else
 			{

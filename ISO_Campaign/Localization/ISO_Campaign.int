@@ -7,20 +7,18 @@ m_SaveToCampaign="Save game to Campaign"
 m_RenameCampaign="RENAME CAMPAIGN"
 m_RenameSave="RENAME"
 m_LoadFromCampaign="Loading game from Campaign"
+m_sDeleteConfirmText="DELETE"
+m_sDeleteAllSaveTitle="CONFIRM CAMPAIGN DELETION"
+m_sDeleteAllSaveText="Are you sure you want to delete ALL save files in this campaign?"
 
 [UISaveLoadItemWithNames]
 m_RenameLabel="RENAME"
 
 [UISaveGameCampaignSelectItem]
 m_RenameCampaignLabel="RENAME CAMPAIGN"
-
-[UISaveGameCampaignSelectItem]
 m_SelectCampaignLabel="SELECT CAMPAIGN"
 m_DeleteCampaignLabel="DELETE CAMPAIGN"
 m_sDeleteAllLabel="DELETE ALL"
-m_sDeleteConfirmText="DELETE"
-m_sDeleteAllSaveTitle="CONFIRM CAMPAIGN DELETION"
-m_sDeleteAllSaveText="Are you sure you want to delete ALL save files in this campaign?"
 
 [WOTC_ISO_Campaign_MCMScreen]
 ModName = "Rename & Reorganise Campaign"
@@ -41,8 +39,5 @@ TWENTY_FOUR_HOUR_CLOCK_ON_GEOSCAPE_Tip = "24h Clock is enabled when this box is 
 
 SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Label = "Show mission location on Campaign Summary"
 SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN_Tip = "When checked, shows the mission location instead of op. name on line 3"
-
-SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Label = "Show mission location on main Save/Load Screens"
-SHOW_MISSION_LOCATION_ON_SAVE_LOAD_Tip = "When checked, shows the mission location instead of op. name on line 3"
 
 GO_DIRECTLY_TO_MOST_RECENT_CAMPAIN_Label = "Skip campaign selection menu"

@@ -3,9 +3,6 @@ class UISaveProperSort extends UISaveGame;
 var localized string					m_RenameCampaign;
 var localized string					m_RenameSave;
 var localized string					m_SaveToCampaign;
-var localized string					m_sDeleteAllSaveTitle;
-var localized string					m_sDeleteAllSaveText;
-var localized string					m_sDeleteConfirmText;
 var OnlineSaveGame						SaveGame;
 var int									RenameCampaignIndex;
 var int									CurrentlySelectedCampaignIndex;
@@ -87,7 +84,7 @@ simulated function BuildMenu()
 				{
 					ShownIndex.AddItem(Index);
 					
-					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], true, OnAcceptCamp, OnRenameCamp, SetSelectionCamp));
+					m_arrListCampaign.AddItem(Spawn(class'UISaveGameCampaignSelectItem', List.ItemContainer).InitSaveLoadItem(ItemIndex, m_arrSaveGames[i], true, OnAcceptCamp, OnRenameCamp, OnDeleteCamp, SetSelectionCamp));
 					m_arrListCampaign[ItemIndex++].ProcessMouseEvents(List.OnChildMouseEvent);
 				}
 			}
@@ -123,6 +120,11 @@ simulated function BuildMenu()
 	
 	m_iCurrentSelection = -1;
 	SetTimer(0.3f, false, nameof(UpdateAllSaves));
+}
+
+simulated public function OnDeleteCamp(optional UIButton control)
+{
+
 }
 
 simulated function InitScreen(XComPlayerController InitController, UIMovie InitMovie, optional name InitName)
@@ -200,32 +202,6 @@ simulated public function OnRenameInd(optional UIButton control)
 	}
 }
 
-simulated public function OnDeleteCamp(optional UIButton control)
-{
-	local TDialogueBoxData kDialogData;
-
-	Movie.Pres.PlayUISound(eSUISound_MenuSelect);
-
-	// Warn before deleting save
-	kDialogData.eType     = eDialog_Warning;
-	kDialogData.strTitle  = m_sDeleteAllSaveTitle;
-	kDialogData.strText   = m_sDeleteAllSaveText;
-	kDialogData.strAccept = m_sDeleteConfirmText;
-	kDialogData.strCancel = class'UIDialogueBox'.default.m_strDefaultCancelLabel;
-
-	kDialogData.fnCallback  = DeleteAllSaveWarningCampaignCallback;
-	Movie.Pres.UIRaiseDialog( kDialogData );
-
-}
-
-simulated function DeleteAllSaveWarningCampaignCallback(Name eAction)
-{
-	if (eAction == 'eUIAction_Accept')
-	{
-		DeleteAllSavesInCampaign();		
-	}
-}
-
 simulated function OverwritingSaveWarningCallback(Name eAction)
 {
 
@@ -236,35 +212,6 @@ simulated function OverwritingSaveWarningCallback(Name eAction)
 		`ONLINEEVENTMGR.SetPlayerDescription(GetCurrentSelectedFilename());
 		Save();
 	}
-}
-
-// Somehow, in this function we need to the items in m_arrSaveGames which have the matching campaign ID number to the current selection
-simulated function DeleteAllSavesInCampaign()
-{
-	local SaveGameHeader	CampaignHeader, IndividualGameHeader;
-	local int				SaveIdx;
-
-	//Fill the local var with the save games
-	`ONLINEEVENTMGR.GetSaveGames(m_arrSaveGames);
-
-	//Use the campaign header from the dummy save game in the class to get the info
-	CampaignHeader = SaveGame.SaveGames[0].SaveGameHeader;
-	//`log("Campaign number is " @ CampaignHeader.GameNum);
-
-	//Loop through all the games in the folder
-	SaveIdx = 0;	
-	while (SaveIdx < m_arrSaveGames.length)
-	{
-		//Get the header
-		IndividualGameHeader = m_arrSaveGames[SaveIdx].SaveGames[0].SaveGameHeader;
-		// Match the menu item campaign gamenumber with the individual game campaign number
-		If(IndividualGameHeader.GameNum == CampaignHeader.GameNum)
-		{
-		//Delete the game if it matches
-		`ONLINEEVENTMGR.DeleteSaveGame(GetSaveID(SaveIdx));
-		}
-		++SaveIdx;
-	}	
 }
 
 simulated function SetCurrentSelectedFilenameX(string text)

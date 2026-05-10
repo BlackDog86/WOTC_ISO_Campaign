@@ -18,9 +18,6 @@ var localized string		m_SelectCampaignLabel;
 var localized string		m_DeleteCampaignLabel;
 var localized string		m_RenameCampaignLabel;
 var localized string		m_sDeleteAllLabel;
-var localized string		m_sDeleteAllSaveTitle;
-var localized string		m_sDeleteAllSaveText;
-var localized string		m_sDeleteConfirmText;
 
 var delegate<OnMouseInDelegate> OnMouseIn;
 
@@ -44,7 +41,7 @@ simulated function UIPanel InitPanel(optional name InitName, optional name InitL
 	return self;
 }
 
-simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, OnlineSaveGame save, bool bSaving, optional delegate<OnClickedDelegate> AcceptClickedDelegate, optional delegate<OnClickedDelegate> RenameClickedDelegate, optional delegate<OnMouseInDelegate> MouseInDelegate)
+simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, OnlineSaveGame save, bool bSaving, optional delegate<OnClickedDelegate> AcceptClickedDelegate, optional delegate<OnClickedDelegate> RenameClickedDelegate, optional delegate<OnClickedDelegate> DeleteClickedDelegate, optional delegate<OnMouseInDelegate> MouseInDelegate)
 {
 	local XComOnlineEventMgr OnlineEventMgr;
 
@@ -78,33 +75,32 @@ simulated function UISaveGameCampaignSelectItem InitSaveLoadItem(int listIndex, 
 	}
 	AcceptButton.OnMouseEventDelegate = OnChildMouseEvent;		
 	
-	RenameButton = Spawn(class'UIButton', ButtonBG);
-	RenameButton.bIsNavigable = false;
-	RenameButton.InitButton('Button2', default.m_DeleteCampaignLabel, OnDeleteCamp);	
-	if (`ISCONTROLLERACTIVE)
-	{
-		RenameButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
-		RenameButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_Y_TRIANGLE);
-		RenameButton.SetVisible(true);
-	}	
-	RenameButton.OnMouseEventDelegate = OnChildMouseEvent;
-	
 	DeleteButton = Spawn(class'UIButton', ButtonBG);
 	DeleteButton.bIsNavigable = false;
-	DeleteButton.InitButton('Button1', default.m_RenameCampaignLabel, RenameClickedDelegate);	
+	DeleteButton.InitButton('Button1', default.m_DeleteCampaignLabel, DeleteClickedDelegate);
+	if (`ISCONTROLLERACTIVE)
+	{
+		DeleteButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
+		DeleteButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_X_SQUARE);
+		DeleteButton.SetVisible(true);
+	}
+	DeleteButton.OnMouseEventDelegate = OnChildMouseEvent;
+
+	RenameButton = Spawn(class'UIButton', ButtonBG);
+	RenameButton.bIsNavigable = false;
+	RenameButton.InitButton('Button2', default.m_RenameCampaignLabel, RenameClickedDelegate);	
 		
 		if (`ISCONTROLLERACTIVE) 
 		{
-			DeleteButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
-			DeleteButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_X_SQUARE); // bsg-jrebar (4.3.17): Unifying across platforms to X for delete
-			DeleteButton.SetVisible(true);
-		}
+			RenameButton.SetStyle(eUIButtonStyle_HOTLINK_WHEN_SANS_MOUSE);
+			RenameButton.SetGamepadIcon(class'UIUtilities_Input'.static.GetGamepadIconPrefix() $ class'UIUtilities_Input'.const.ICON_Y_TRIANGLE); // bsg-jrebar (4.3.17): Unifying across platforms to X for delete
+			RenameButton.SetVisible(true);
+		}	
+	RenameButton.OnMouseEventDelegate = OnChildMouseEvent;
 	
-	DeleteButton.OnMouseEventDelegate = OnChildMouseEvent;
-	
-	If(!`GETMCMVAR(ENABLE_DELETE_CAMPAIGN_BUTTON) || `ISCONTROLLERACTIVE)
+	If(!`GETMCMVAR(ENABLE_DELETE_CAMPAIGN_BUTTON))
 	{
-	RenameButton.SetDisabled(true);
+	DeleteButton.SetDisabled(true);
 	}
 	OnMouseIn = MouseInDelegate;
 
@@ -144,8 +140,8 @@ simulated function OnInit()
 
 function ResetButtons()
 {
-	RenameButton.SetPosition(AcceptButton.X + AcceptButton.Width + 8, AcceptButton.Y);
-	DeleteButton.SetPosition(RenameButton.X + RenameButton.Width + 8, RenameButton.Y);
+	DeleteButton.SetPosition(AcceptButton.X + AcceptButton.Width + 8, AcceptButton.Y);
+	RenameButton.SetPosition(DeleteButton.X + DeleteButton.Width + 8, DeleteButton.Y);
 }
 
 function bool ImageCheck()
@@ -308,7 +304,7 @@ simulated function UpdateDataCamp(OnlineSaveGame save)
 		//We've made a normal save game
 		strTime = saveDateArray[2] $'-'$ saveDateArray[0] $'-'$ saveDateArray[1] $' - '$ dateTimeArray[1]; // This is actually the date & time concatenated together
 		strDate = strTime; // StrDate is the whole first line of the save/load box (Date + time + user save description)
-		strName = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum;	 // StrName is the second line - Get the campaign 
+		strMission = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum;	 // StrName is the second line - Get the campaign 
 		strCampaignName = class'SaveGameNamingManagerCampaign'.static.GetSaveName(Header.GameNum);
 
 		//Put the custom campaign name or campaign number at the end of the first line
@@ -318,13 +314,13 @@ simulated function UpdateDataCamp(OnlineSaveGame save)
 		}
 		else
 		{
-			strDate @= "-" @ strName;
+			strDate @= "-" @ strMission;
 		}	
 		
 		//Put the ironman label in brackets on the second line after the campaign name / number
 		if (Header.bIsIronman)
 		{
-			strName @= "(" $ class'XComOnlineEventMgr'.default.m_strIronmanLabel $ ")";
+			strMission @= "(" $ class'XComOnlineEventMgr'.default.m_strIronmanLabel $ ")";
 		}	
 		
 		if (Descriptions.Length == 7) // We saved in a mission
@@ -391,15 +387,15 @@ simulated function UpdateDataCamp(OnlineSaveGame save)
 				gameTime=left(Descriptions[6],8);
 				}
 
-			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
+			strName = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
 
 			if(`GETMCMVAR(SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN))
 				{
-				strMission $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the final line in the save box (i.e in-game-date + time + description)
+				strName $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the final line in the save box (i.e in-game-date + time + description)
 				}
 			else
 				{
-				strMission $= ' - '$ gameTime $ ' - ' $ Descriptions[4];						// This is the final line in the save box (i.e in-game-date + time + location)
+				strName $= ' - '$ gameTime $ ' - ' $ Descriptions[4];						// This is the final line in the save box (i.e in-game-date + time + location)
 				}
 		}
 
@@ -493,14 +489,14 @@ simulated function UpdateDataCamp(OnlineSaveGame save)
 	//accept Label
 	myValue.s = GetAcceptLabel(bIsNewSave);
 	AcceptButton.SetText(myValue.s);
+	myArray.AddItem(myValue);	
+
+	//delete campaign label
+	myValue.s = default.m_DeleteCampaignLabel;
 	myArray.AddItem(myValue);
 
 	//rename label
 	myValue.s = default.m_RenameCampaignLabel;
-	myArray.AddItem(myValue);
-
-	//delete campaign label
-	myValue.s = default.m_DeleteCampaignLabel;
 	myArray.AddItem(myValue);
 
 	Invoke("updateData", myArray);
@@ -543,23 +539,25 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 	{
 	case class'UIUtilities_Input'.const.FXS_BUTTON_A:
 	case class'UIUtilities_Input'.const.FXS_KEY_ENTER:
-
 		AcceptButton.Click();
 		return true;
-		
+
+	case class'UIUtilities_Input'.const.FXS_BUTTON_X:
+	case class'UIUtilities_Input'.const.FXS_KEY_DELETE:
+		`log("X OR DELETE PRESSED - SOMETHING IS WRONG WITH THE DELEGATES YOU FOOL",,'BDLOG');
+		DeleteButton.Click();
+		return true;
+
 	case class'UIUtilities_Input'.const.FXS_BUTTON_Y:
-	case (class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR):
-		if( RenameButton.IsVisible() )
-		{
-			RenameButton.Click();
-			return true;
-		}
-		break;
+	case class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR:		
+		RenameButton.Click();
+		return true;		
+		break;	
 	}
 	//`log("Using base game stuff to handle dpad up/down on campaign menu");
 	return super.OnUnrealCommand(cmd, arg);
 }
-
+/*
 simulated public function OnDeleteCamp(optional UIButton control)
 {
 	local TDialogueBoxData kDialogData;
@@ -614,7 +612,7 @@ simulated function DeleteAllSavesInCampaign()
 		++SaveIdx;
 	}	
 }
-
+*/
 simulated function OnReceiveFocus()
 {
 	if (`ISCONTROLLERACTIVE == false)
