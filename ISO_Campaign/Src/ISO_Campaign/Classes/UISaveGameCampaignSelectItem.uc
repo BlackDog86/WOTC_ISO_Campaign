@@ -398,11 +398,11 @@ simulated function UpdateDataCamp(OnlineSaveGame save)
 
 			if(`GETMCMVAR(SHOW_MISSION_LOCATION_ON_CAMPAIGN_SCREEN))
 			{
-				strName $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the final line in the save box (i.e in-game-date + time + description)
+				strName $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the second line in the save box (i.e in-game-date + time + operation name)
 			}
 			else
 			{
-				strName $= ' - '$ gameTime $ ' - ' $ Descriptions[4];						// This is the final line in the save box (i.e in-game-date + time + location)
+				strName $= ' - '$ gameTime $ ' - ' $ Descriptions[4];						// This is the second line in the save box (i.e in-game-date + time + location)
 			}
 		}
 
@@ -455,15 +455,15 @@ simulated function UpdateDataCamp(OnlineSaveGame save)
 				gameDateArray[1] = "0" $ gameDateArray[1];
 			}
 			
-			strMission = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];
+			strName = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];
 			
 			if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
 			{	
-				strMission $= ' - ' $ gameTime;
+				strName $= ' - ' $ gameTime;
 			}
 				else
 			{
-				strMission $= ' - ' $ Descriptions[5];
+				strName $= ' - ' $ Descriptions[5];
 			}
 		}
 	}
