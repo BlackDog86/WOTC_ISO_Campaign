@@ -154,23 +154,23 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 
 	// Append zeros to the month & day if needed
 	if (len(saveDateArray[0]) == 1)
-		{
+	{
 		saveDateArray[0] = "0" $ saveDateArray[0];
-		}
+	}
 	if (len(saveDateArray[1]) == 1)
-		{
+	{
 		saveDateArray[1] = "0" $ saveDateArray[1];
-		}
+	}
 	if (len(DateTimeArray[1]) == 4 || len(DateTimeArray[1]) == 7)
 	//e.g. A 24h clock time is listed as 1:34 onstead of 01:34
-		{
+	{
 		DateTimeArray[1] = "0" $ DateTimeArray[1];
-		}
+	}
 	//Parse Ironman desc.
 	If(InStr(Descriptions[2],class'XComOnlineEventMgr'.default.m_strIronmanLabel) !=INDEX_NONE)
-		{
+	{
 		Descriptions[2] = class'XComOnlineEventMgr'.default.m_strIronmanLabel;
-		}
+	}
 	
 	//For old save files that used "-"
 	if( Descriptions.length < 2 )
@@ -199,8 +199,8 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 		//If we're not separating the saves by campaign, put the campaign number at the start of line 3
 		if(!`GETMCMVAR(SEPARATE_BY_CAMPAIGN))
 		{
-				//Output campaign number
-				strMission = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum @ ":";	
+			//Output campaign number
+			strMission = class'XComOnlineEventMgr'.default.m_sCampaignString @ Header.GameNum @ ":";	
 		}		
 
 		if (Descriptions.Length == 7) // We saved in a mission
@@ -214,94 +214,107 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 			}
 
 		//Process the 'in-game' time 
-		gameHour=Int(Left(Descriptions[6],2));			//Put the in-game time into integer variables
+		gameHour=Int(Left(Descriptions[6],2));			//Put the in-game time into integer variables		
 		gameMinute=Int(Mid(Descriptions[6],3,2));		
+		
+		if(`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+		{
+			///`log("Descriptions[6]:" @ Descriptions[6] @ "Gamehour:" @ gameHour,,'BDLOG');
+			///`log("AM Found at pos:" @ InStr(Left(Descriptions[6],8),"AM"),,'BDLOG');
+			///`log("PM Found at pos:" @ InStr(Left(Descriptions[6],8),"PM"),,'BDLOG');
+			if(InStr(Left(Descriptions[6],8),"AM") >= 0 && gameHour == 12)
+			{				
+				gameHour = 0;
+			}
+			if(InStr(Left(Descriptions[6],8),"PM") >= 0 && gameHour < 12)
+			{
+				// Add 12 to PM times for 24h clock 
+				gameHour += 12;
+			}
+		}
+		gameHourString="";
+		gameHourString$=gameHour;
 				
-			If(InStr(Left(Descriptions[6],8),"PM") !=INDEX_NONE )		
-			{							
-				gameHour=Int(Left(Descriptions[6],2));	//If "PM" is in the string & it's not 12pm, add 12				
-				if(gameHour < 12 && `GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+		If (Len(gameHourString)==1)
+		{
+			gameHourString="0"$gameHourString;			//Append leading 0
+		}
+		
+		gameMinuteString="";
+		gameMinuteString$=gameMinute;					//Append leading 0
+			
+		If (Len(gameMinuteString)==1)
+		{
+			gameMinuteString="0"$gameMinuteString;
+		}
+		
+		if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+		{	
+			gameTime=gameHourString$":"$gameMinuteString;
+		}
+		else
+		{
+			gameTime=left(Descriptions[6],8);
+		}
+		
+		gameDateArray=SplitString(Descriptions[5],"/");		//Split in the in-game date up into 3 strings
+			
+		if (len(gameDateArray[0]) == 1)					// Append zeroes to months & days as needed
+		{
+			gameDateArray[0] = "0" $ gameDateArray[0];
+		}
+		if (len(gameDateArray[1]) == 1)
+		{
+			gameDateArray[1] = "0" $ gameDateArray[1];
+		}			
+		
+		strName = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
+		strName $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the second line in the save box (i.e in-game-date + time + MISSION LOC.)
+	}
+
+		if (Descriptions.Length == 6) // We saved on the Geoscape
+		{
+			if(mid(Descriptions[5],1,1) == ":")
+			{
+				Descriptions[5] = "0" $ Descriptions[5]; //Ensure the time part is a consistent length irrespective of the 12h time in the header
+			}
+			strMission = Descriptions[3];
+
+			gameHour=Int(Left(Descriptions[5],2));			//Put the in-game time into integer variables			
+			gameMinute=Int(Mid(Descriptions[5],3,2));		
+				
+			if(`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
+			{
+				//`log("Descriptions[5]:" @ Descriptions[5] @ "Gamehour:" @ gameHour,,'BDLOG');
+				//`log("AM Found at pos:" @ InStr(Left(Descriptions[5],8),"AM"),,'BDLOG');
+				//`log("PM Found at pos:" @ InStr(Left(Descriptions[6],8),"PM"),,'BDLOG');
+				if(InStr(Left(Descriptions[5],8),"AM") >= 0 && gameHour == 12)
 				{
+					//Special case for 12:XX AM					
+					gameHour = 0;
+				}
+				if(InStr(Left(Descriptions[5],8),"PM") >= 0 && gameHour < 12)
+				{					
 					gameHour += 12;
 				}
-			}			
-			
+			}
+
 			gameHourString="";
 			gameHourString$=gameHour;
-				
 			If (Len(gameHourString)==1)
 			{
-				gameHourString="0"$gameHourString;			//Append leading 0
+				gameHourString="0"$gameHourString;
 			}
+			
 			gameMinuteString="";
 			gameMinuteString$=gameMinute;					//Append leading 0
-				
+			
 			If (Len(gameMinuteString)==1)
 			{
 				gameMinuteString="0"$gameMinuteString;
 			}
 
-			if (`GETMCMVAR(TWENTY_FOUR_HOUR_CLOCK))
-			{	
-				gameTime=gameHourString$":"$gameMinuteString;
-			}
-			else
-			{
-				gameTime=left(Descriptions[6],8);
-			}
-
-			gameDateArray=SplitString(Descriptions[5],"/");		//Split in the in-game date up into 3 strings
-			
-			if (len(gameDateArray[0]) == 1)					// Append zeroes to months & days as needed
-			{
-				gameDateArray[0] = "0" $ gameDateArray[0];
-			}
-			if (len(gameDateArray[1]) == 1)
-			{
-				gameDateArray[1] = "0" $ gameDateArray[1];
-			}			
-			strName = gameDateArray[2] $'-'$ gameDateArray[0] $'-'$ gameDateArray[1];	//Re-arrange the date strings
-
-			strName $= ' - '$ gameTime $ ' - ' $ Split(Mid(Descriptions[6],8,200)," ",true); // This is the second line in the save box (i.e in-game-date + time + MISSION LOC.)
-		}
-
-		if (Descriptions.Length == 6) // We saved on the Geoscape
-		{
-			
-			if(mid(Descriptions[5],1,1) == ":")
-			{
-				Descriptions[5] = "0" $ Descriptions[5]; //Ensure the time part is a consistent length irrespective of the 12h time in the header
-			}
-			strMission = Descriptions[3] $ ' - ' $ Split(Mid(Descriptions[5],8,200), " ",true);
-
-			gameHour=Int(Left(Descriptions[5],2));			//Put the in-game time into integer variables	
-			gameMinute=Int(Mid(Descriptions[5],3,2));		
-				
-				If(InStr(Left(Descriptions[5],8),"PM") !=INDEX_NONE)		
-				{			
-					gameHour=Int(Left(Descriptions[5],2));	//If "PM" is in the string, add 12							
-					
-					if(gameHour < 12)
-					{
-						gameHour += 12;
-					}					
-				}	
-				
-				gameHourString="";
-				gameHourString$=gameHour;
-				If (Len(gameHourString)==1)
-				{
-					gameHourString="0"$gameHourString;
-				}
-				gameMinuteString="";
-				gameMinuteString$=gameMinute;					//Append leading 0
-					If (Len(gameMinuteString)==1)
-				{
-					gameMinuteString="0"$gameMinuteString;
-				}
-
-			gameTime=gameHourString$":"$gameMinuteString;			
-
+			gameTime=gameHourString$":"$gameMinuteString;
 			gameDateArray=SplitString(Descriptions[4],"/");		//As before - note that the array elements are now offset by one compared with the in-mission saves
 			if (len(gameDateArray[0]) == 1)
 			{
@@ -362,6 +375,7 @@ simulated function UpdateDataWithNames(OnlineSaveGame save)
 	{
 		myValue.s = m_sLoadLabel;
 	}
+
 	AcceptButton.SetText(myValue.s);
 	myArray.AddItem(myValue);
 
